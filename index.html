@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KISS this dashboard</title>
+  <link rel="stylesheet" href="assets/css/bulma.min.css" />
+  <style>
+    :root {
+      --shell-max-width: 1150px;
+      --bg-a: #0f172a;
+      --bg-b: #1e293b;
+      --bg-c: #111827;
+      --panel-bg: rgba(15, 23, 42, 0.55);
+      --panel-border: rgba(148, 163, 184, 0.25);
+      --text-soft: #cbd5e1;
+      --title: #f8fafc;
+      --dashboard-tab-bg: rgba(30, 41, 59, 0.55);
+      --dashboard-tab-hover-bg: rgba(51, 65, 85, 0.72);
+      --dashboard-tab-text: #cbd5e1;
+      --dashboard-tab-hover-text: #e2e8f0;
+      --dashboard-tab-active-bg: #2563eb;
+      --dashboard-tab-active-text: #ffffff;
+      --dashboard-nav-tab-bg: #f8fafc;
+      --dashboard-nav-tab-text: #0f172a;
+      --dashboard-nav-tab-hover-bg: #e2e8f0;
+      --dashboard-nav-tab-hover-text: #020617;
+    }
+
+    html,
+    body {
+      height: 100%;
+      min-height: 100dvh;
+    }
+
+    html {
+      background: var(--dashboard-page-bg, var(--bg-a));
+    }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      background: var(--dashboard-page-bg, var(--bg-a));
+      color: var(--dashboard-text-color, var(--title));
+    }
+
+    .section {
+      min-height: 100dvh;
+      background: transparent;
+    }
+
+    .dashboard-shell {
+      max-width: var(--shell-max-width);
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar .tabs {
+      margin-bottom: 0;
+    }
+
+    #dashboardTabsWrap.is-hidden {
+      display: none;
+    }
+
+    .mode-tabs a {
+      font-weight: 700;
+    }
+
+    .mode-tabs .add-tab a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 3.2rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      font-size: inherit;
+      line-height: inherit;
+    }
+
+    .mode-tabs ul > li > a {
+      min-width: 3.2rem;
+    }
+
+    .mode-tabs ul {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .tabs.is-boxed a {
+      border-radius: 0.6rem 0.6rem 0 0;
+      border-color: rgba(148, 163, 184, 0.3);
+      background: var(--dashboard-tab-bg);
+      color: var(--dashboard-tab-text);
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tabs.is-boxed a:hover {
+      background: var(--dashboard-tab-hover-bg);
+      border-color: rgba(148, 163, 184, 0.45);
+      color: var(--dashboard-tab-hover-text);
+    }
+
+    .tabs.is-boxed li.is-active a {
+      background: var(--dashboard-tab-active-bg);
+      color: var(--dashboard-tab-active-text);
+      border-color: transparent;
+    }
+
+    .mode-tabs .nav-action-tab {
+      margin-left: auto;
+    }
+
+    .mode-tabs .nav-action-tab a {
+      background: var(--dashboard-nav-tab-bg);
+      border-color: transparent;
+      color: var(--dashboard-nav-tab-text);
+    }
+
+    .mode-tabs .nav-action-tab a:hover {
+      background: var(--dashboard-nav-tab-hover-bg);
+      border-color: transparent;
+      color: var(--dashboard-nav-tab-hover-text);
+    }
+
+    .toolbar-mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.5rem;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(30, 41, 59, 0.45);
+    }
+
+    .mode-switch-label {
+      color: var(--text-soft);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      user-select: none;
+    }
+
+    .dashboard-link-mode {
+      gap: 0.35rem;
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .dashboard-link-mode .mode-switch-label {
+      font-size: 0.78rem;
+      color: var(--dashboard-text-color, #e2e8f0);
+      letter-spacing: 0;
+    }
+
+    .dashboard-link-mode .ios-switch {
+      width: 2.35rem;
+      height: 1.35rem;
+    }
+
+    .dashboard-link-mode .ios-switch-slider::before {
+      width: 0.95rem;
+      height: 0.95rem;
+      left: 0.2rem;
+      top: 0.2rem;
+    }
+
+    .dashboard-link-mode .ios-switch input:checked + .ios-switch-slider::before {
+      transform: translateX(1rem);
+    }
+
+    .ios-switch {
+      position: relative;
+      width: 3rem;
+      height: 1.75rem;
+      display: inline-block;
+    }
+
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .ios-switch-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: #475569;
+      border-radius: 9999px;
+      transition: background-color 0.2s ease;
+    }
+
+    .ios-switch-slider::before {
+      content: "";
+      position: absolute;
+      width: 1.35rem;
+      height: 1.35rem;
+      left: 0.2rem;
+      top: 0.2rem;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(2, 6, 23, 0.35);
+      transition: transform 0.2s ease;
+    }
+
+    .ios-switch input:checked + .ios-switch-slider {
+      background: #2563eb;
+    }
+
+    .ios-switch input:checked + .ios-switch-slider::before {
+      transform: translateX(1.25rem);
+    }
+
+    .group-box {
+      background: var(--dashboard-group-bg, transparent);
+      border: none;
+      box-shadow: none;
+      padding: var(--dashboard-group-padding, 24px);
+      border-radius: var(--dashboard-group-radius, 0);
+      margin-bottom: 0.65rem;
+    }
+
+    .dashboard-group-shell-flat .group-box {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .entry-grid {
+      margin: -0.4rem !important;
+    }
+
+    .dashboard-group-shell-flat .entry-grid {
+      margin: -0.4rem !important;
+    }
+
+    .entry-grid > .column {
+      padding: 0.4rem !important;
+    }
+
+    .group-box.group-end {
+      margin-bottom: 1rem;
+    }
+
+    .group-title {
+      color: var(--dashboard-text-color, var(--title));
+    }
+
+    .group-title:not(:last-child) {
+      margin: 0 0 10px;
+    }
+
+    .dashboard-group-shell-flat .group-title:not(:last-child) {
+      margin: 0 0 10px;
+    }
+
+    .entry-button {
+      justify-content: flex-start;
+      min-height: 3rem;
+      border: none;
+      color: var(--dashboard-button-text-color, #0f172a);
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .entry-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.28);
+      color: var(--dashboard-button-text-color, #0b1020);
+    }
+
+    .entry-button .entry-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .entry-icon {
+      margin-right: 0.5rem;
+      min-width: 1.35rem;
+      min-height: 1.35rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .entry-icon img {
+      width: 1.2rem;
+      height: 1.2rem;
+      object-fit: contain;
+      display: block;
+    }
+
+    .empty-state {
+      color: var(--dashboard-text-color, var(--text-soft));
+      text-align: center;
+      border: 1px dashed rgba(148, 163, 184, 0.45);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .section {
+        padding: 12px;
+      }
+
+      .toolbar {
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .toolbar-mode-row {
+        padding: 4px 0;
+      }
+
+      .group-box {
+        padding: 12px;
+      }
+
+      .group-box.group-end {
+        margin-bottom: 12px;
+      }
+
+      .empty-state {
+        padding: 12px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="dashboard-shell">
+      <div class="toolbar">
+        <div id="dashboardTabsWrap" class="tabs is-boxed mode-tabs">
+          <ul id="dashboardTabList"></ul>
+        </div>
+        <div id="toolbarModeRow" class="toolbar-mode-row">
+          <div class="mode-switch dashboard-link-mode" aria-label="Link mode switch">
+            <span id="linkModeTextLabel" class="mode-switch-label">use internal links</span>
+            <label class="ios-switch" for="linkModeToggle">
+              <input id="linkModeToggle" type="checkbox" aria-label="Switch between external and internal links" />
+              <span class="ios-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="dashboardContent"></div>
+    </div>
+  </section>
+
+  <script src="dashboard-common.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

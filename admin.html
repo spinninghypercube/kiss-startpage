@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KISS this dashboard Admin</title>
+  <link rel="stylesheet" href="assets/css/bulma.min.css" />
+  <style>
+    :root {
+      --shell-max-width: 1150px;
+      --bg-a: #020617;
+      --bg-b: #0f172a;
+      --bg-c: #111827;
+      --panel-bg: rgba(15, 23, 42, 0.72);
+      --panel-border: rgba(148, 163, 184, 0.28);
+      --text-soft: #cbd5e1;
+      --title: #f8fafc;
+      --dashboard-tab-bg: rgba(30, 41, 59, 0.55);
+      --dashboard-tab-hover-bg: rgba(51, 65, 85, 0.72);
+      --dashboard-tab-text: #cbd5e1;
+      --dashboard-tab-hover-text: #e2e8f0;
+      --dashboard-tab-active-bg: #2563eb;
+      --dashboard-tab-active-text: #ffffff;
+      --dashboard-nav-tab-bg: #f8fafc;
+      --dashboard-nav-tab-text: #0f172a;
+      --dashboard-nav-tab-hover-bg: #e2e8f0;
+      --dashboard-nav-tab-hover-text: #020617;
+      --admin-entry-add-accent: #f8fafc;
+      --admin-entry-add-accent-soft: rgba(248, 250, 252, 0.75);
+      --admin-entry-add-accent-hover-bg: rgba(248, 250, 252, 0.14);
+      --admin-group-add-accent: #f8fafc;
+      --admin-group-add-accent-soft: rgba(248, 250, 252, 0.75);
+      --admin-group-add-accent-hover-bg: rgba(248, 250, 252, 0.14);
+      --admin-surface-text-color: #f8fafc;
+      --admin-surface-text-muted: rgba(248, 250, 252, 0.88);
+      --admin-panel-text-color: #f8fafc;
+      --admin-panel-text-muted: rgba(248, 250, 252, 0.88);
+    }
+
+    html,
+    body {
+      height: 100%;
+      min-height: 100dvh;
+    }
+
+    html {
+      background: var(--dashboard-page-bg, var(--bg-a));
+    }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      background: var(--dashboard-page-bg, var(--bg-a));
+      color: var(--dashboard-text-color, var(--title));
+    }
+
+    .section {
+      min-height: 100dvh;
+      background: transparent;
+    }
+
+    .admin-shell {
+      max-width: var(--shell-max-width);
+      margin: 0 auto;
+    }
+
+    #messageBox {
+      position: fixed;
+      top: 0.7rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92vw, 42rem);
+      z-index: 1200;
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
+    }
+
+    .admin-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-topbar-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .panel-box,
+    .group-box,
+    .login-box,
+    .account-box,
+    .modal-card {
+      background: var(--panel-bg);
+      border: 1px solid transparent;
+      box-shadow: none !important;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .panel-box,
+    .group-box {
+      color: var(--admin-surface-text-color, var(--dashboard-text-color, var(--title)));
+    }
+
+    .login-box,
+    .account-box,
+    .modal-card {
+      color: var(--admin-panel-text-color, #f8fafc);
+    }
+
+    .panel-box .title,
+    .panel-box .subtitle,
+    .panel-box .label,
+    .panel-box .help,
+    .panel-box p,
+    .panel-box .checkbox,
+    .group-box .title,
+    .group-box .subtitle,
+    .group-box .label,
+    .group-box .help,
+    .group-box p,
+    .group-box .checkbox {
+      color: var(--admin-surface-text-color, var(--dashboard-text-color, var(--title)));
+    }
+
+    .login-box .title,
+    .login-box .subtitle,
+    .login-box .label,
+    .login-box .help,
+    .login-box p,
+    .login-box .checkbox,
+    .account-box .title,
+    .account-box .subtitle,
+    .account-box .label,
+    .account-box .help,
+    .account-box p,
+    .account-box .checkbox,
+    .modal-card .title,
+    .modal-card .subtitle,
+    .modal-card .label,
+    .modal-card .help,
+    .modal-card p,
+    .modal-card .checkbox,
+    .modal-card-title {
+      color: var(--admin-panel-text-color, #f8fafc);
+    }
+
+    .panel-box .muted,
+    .group-box .muted {
+      color: var(--admin-surface-text-muted, var(--text-soft));
+    }
+
+    .login-box .muted,
+    .account-box .muted,
+    .modal-card .muted {
+      color: var(--admin-panel-text-muted, var(--text-soft));
+    }
+
+    .input,
+    .select select,
+    .textarea {
+      background: rgba(15, 23, 42, 0.78);
+      color: #f8fafc;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+
+    .input::placeholder,
+    .textarea::placeholder {
+      color: #9aa8bb;
+    }
+
+    .input:focus,
+    .select select:focus,
+    .textarea:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 0.125em rgba(96, 165, 250, 0.2);
+    }
+
+    .tabs.is-boxed a {
+      border-radius: 0.6rem 0.6rem 0 0;
+      border-color: rgba(148, 163, 184, 0.3);
+      background: var(--dashboard-tab-bg);
+      color: var(--dashboard-tab-text);
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tabs.is-boxed a:hover {
+      background: var(--dashboard-tab-hover-bg);
+      border-color: rgba(148, 163, 184, 0.45);
+      color: var(--dashboard-tab-hover-text);
+    }
+
+    .tabs.is-boxed li.is-active a {
+      background: var(--dashboard-tab-active-bg);
+      color: var(--dashboard-tab-active-text);
+      border-color: transparent;
+    }
+
+    .mode-tabs a {
+      font-weight: 700;
+    }
+
+    .mode-tabs ul {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .mode-tabs .add-tab a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 3.2rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      font-size: inherit;
+      line-height: inherit;
+    }
+
+    .mode-tabs ul > li > a {
+      min-width: 3.2rem;
+    }
+
+    .mode-tabs .nav-action-tab {
+      margin-left: auto;
+    }
+
+    .mode-tabs .nav-action-tab a {
+      background: var(--dashboard-nav-tab-bg);
+      border-color: transparent;
+      color: var(--dashboard-nav-tab-text);
+    }
+
+    .mode-tabs .nav-action-tab a:hover {
+      background: var(--dashboard-nav-tab-hover-bg);
+      border-color: transparent;
+      color: var(--dashboard-nav-tab-hover-text);
+    }
+
+    .tab-manager {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .dashboard-manager-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.52);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .dashboard-chip {
+      border-radius: 9999px;
+      border: none;
+      background: rgba(51, 65, 85, 0.72);
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    .dashboard-chip.is-active {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .title-editor {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .title-editor .input {
+      max-width: 420px;
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .settings-head .title {
+      margin-bottom: 0 !important;
+    }
+
+    .settings-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .live-color-editor-panel {
+      margin-top: 0.4rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .live-color-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .live-color-editor-head .title {
+      margin-bottom: 0 !important;
+    }
+
+    .account-link-btn {
+      font-weight: 700;
+    }
+
+    .account-link-btn,
+    #logoutBtn,
+    #liveColorEditorToggleBtn,
+    .delete-dashboard-btn {
+      border: 1px solid currentColor !important;
+    }
+
+    .delete-dashboard-btn {
+      margin-left: 0;
+    }
+
+    .preview-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(30, 41, 59, 0.45);
+    }
+
+    .mode-switch-label {
+      color: var(--text-soft);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      user-select: none;
+    }
+
+    .mode-switch-label.is-active {
+      color: #fff;
+    }
+
+    .ios-switch {
+      position: relative;
+      width: 3rem;
+      height: 1.75rem;
+      display: inline-block;
+    }
+
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .ios-switch-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: #475569;
+      border-radius: 9999px;
+      transition: background-color 0.2s ease;
+    }
+
+    .ios-switch-slider::before {
+      content: "";
+      position: absolute;
+      width: 1.35rem;
+      height: 1.35rem;
+      left: 0.2rem;
+      top: 0.2rem;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(2, 6, 23, 0.35);
+      transition: transform 0.2s ease;
+    }
+
+    .ios-switch input:checked + .ios-switch-slider {
+      background: #2563eb;
+    }
+
+    .ios-switch input:checked + .ios-switch-slider::before {
+      transform: translateX(1.25rem);
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+    }
+
+    .icon-action {
+      width: 2rem;
+      min-width: 2rem;
+      height: 2rem;
+      padding: 0;
+      font-size: 1.15rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--text-soft) !important;
+      border-radius: 0;
+    }
+
+    .mini-actions .icon-action {
+      width: 2.25rem;
+      min-width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.45rem;
+    }
+
+    .icon-action.is-link {
+      color: #93c5fd !important;
+    }
+
+    .icon-action.is-info {
+      color: #67e8f9 !important;
+    }
+
+    .icon-action.is-success {
+      color: #86efac !important;
+    }
+
+    .icon-action.is-danger {
+      color: #fca5a5 !important;
+    }
+
+    .icon-action:hover:not(:disabled) {
+      color: #ffffff !important;
+      transform: scale(1.08);
+    }
+
+    .icon-action:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .group-box {
+      margin-top: 1rem;
+      background: var(--dashboard-group-bg, var(--panel-bg));
+      padding: 24px;
+    }
+
+    .admin-group-shell-flat .group-box {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .admin-group-shell-flat .group-head {
+      padding: 0 0.4rem;
+    }
+
+    .admin-group-shell-flat .entry-grid {
+      margin: 0 !important;
+    }
+
+    .admin-group-shell-flat .dashboard-settings-box,
+    .admin-group-shell-flat .admin-editor-box {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .admin-group-shell-flat .dashboard-settings-box > *,
+    .admin-group-shell-flat .admin-editor-box > * {
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
+    }
+
+    .dashboard-settings-box {
+      background: var(--dashboard-group-bg, var(--panel-bg));
+      padding: 24px;
+    }
+
+    .admin-editor-box {
+      background: var(--dashboard-group-bg, var(--panel-bg));
+      padding: 24px;
+    }
+
+    .group-box.group-end {
+      margin-bottom: 1.5rem;
+    }
+
+    .group-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .group-head-main {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      flex: 1 1 16rem;
+      min-width: 0;
+    }
+
+    .group-title-input {
+      flex: 1 1 16rem;
+      max-width: 420px;
+    }
+
+    .group-button-color-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.55rem;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.26);
+    }
+
+    .group-button-color-inline-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: inherit;
+      white-space: nowrap;
+    }
+
+    .group-button-color-inline input[type="color"] {
+      width: 1.85rem;
+      min-width: 1.85rem;
+      height: 1.85rem;
+      padding: 0;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 0.45rem;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .group-button-color-inline input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .group-button-color-inline input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 0.35rem;
+    }
+
+    .group-button-color-inline .input {
+      width: 6.35rem;
+      min-height: 1.85rem;
+      height: 1.85rem;
+      padding: 0 0.45rem;
+      font-size: 0.8rem;
+      border-radius: 0.45rem;
+      text-transform: lowercase;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    .entry-admin-card {
+      padding: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .entry-grid {
+      margin: -0.4rem !important;
+    }
+
+    .entry-grid > .column {
+      padding: 0.4rem !important;
+    }
+
+    .entry-preview-button {
+      justify-content: flex-start;
+      min-height: 3rem;
+      border: none;
+      color: var(--dashboard-button-text-color, #0f172a);
+      font-weight: 700;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .entry-preview-button:hover {
+      color: var(--dashboard-button-text-color, #0b1020);
+    }
+
+    .entry-preview-edit-icon {
+      margin-left: auto;
+      min-width: 1.1rem;
+      text-align: center;
+      opacity: 0.9;
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    .entry-preview-button .entry-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .entry-add-button {
+      min-height: 3rem;
+      border: 2px dotted var(--admin-entry-add-accent-soft) !important;
+      background: transparent !important;
+      color: var(--admin-entry-add-accent) !important;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .entry-add-button:hover {
+      border-color: var(--admin-entry-add-accent) !important;
+      color: var(--admin-entry-add-accent) !important;
+      background: var(--admin-entry-add-accent-hover-bg) !important;
+    }
+
+    .group-add-panel {
+      margin-top: 1rem;
+      border: 2px dotted var(--admin-group-add-accent-soft) !important;
+      background: transparent !important;
+      transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .group-add-panel:hover,
+    .group-add-panel:focus-within {
+      background: var(--admin-group-add-accent-hover-bg) !important;
+      border-color: var(--admin-group-add-accent) !important;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--admin-group-add-accent) 35%, transparent);
+    }
+
+    .group-add-panel-button {
+      min-height: 4.25rem;
+      font-size: 1.8rem;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--admin-group-add-accent) !important;
+    }
+
+    .group-add-panel-button:hover {
+      color: var(--admin-group-add-accent) !important;
+      background: transparent !important;
+    }
+
+    .entry-icon {
+      margin-right: 0.5rem;
+      min-width: 1.35rem;
+      min-height: 1.35rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .entry-icon img {
+      width: 1.2rem;
+      height: 1.2rem;
+      object-fit: contain;
+      display: block;
+    }
+
+    .empty-state {
+      color: var(--text-soft);
+      text-align: center;
+      border: 1px dashed rgba(148, 163, 184, 0.45);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    .empty-state.small {
+      padding: 0.7rem;
+      font-size: 0.9rem;
+    }
+
+    .modal-card-head,
+    .modal-card-foot {
+      border-color: rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.92);
+    }
+
+    .entry-modal-head,
+    .account-modal-head {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+    }
+
+    .entry-modal-head-actions,
+    .account-modal-head-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      margin-left: auto;
+    }
+
+    .modal-card-body {
+      background: rgba(15, 23, 42, 0.88);
+      color: var(--dashboard-text-color, var(--title));
+    }
+
+    .icon-preview {
+      width: 1.35rem;
+      height: 1.35rem;
+      object-fit: contain;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.35rem;
+    }
+
+    .icon-search-controls {
+      display: flex;
+      gap: 0.45rem;
+      align-items: stretch;
+    }
+
+    .icon-search-controls .control.is-expanded {
+      flex: 1 1 auto;
+    }
+
+    .icon-search-results {
+      margin-top: 0.55rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 0.45rem;
+      max-height: 15rem;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(147, 197, 253, 0.55) rgba(30, 41, 59, 0.38);
+    }
+
+    .icon-search-results::-webkit-scrollbar {
+      width: 0.55rem;
+      height: 0.55rem;
+    }
+
+    .icon-search-results::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.35);
+      border-radius: 9999px;
+    }
+
+    .icon-search-results::-webkit-scrollbar-thumb {
+      background: rgba(147, 197, 253, 0.55);
+      border-radius: 9999px;
+      border: 1px solid rgba(15, 23, 42, 0.28);
+    }
+
+    .icon-search-results::-webkit-scrollbar-thumb:hover {
+      background: rgba(147, 197, 253, 0.75);
+    }
+
+    .color-picker-row {
+      margin-bottom: 0 !important;
+    }
+
+    .color-picker-row .control {
+      display: flex;
+    }
+
+    .color-swatch-addon {
+      width: 2.35rem;
+      min-width: 2.35rem;
+      height: 2.5rem;
+      border-radius: 0.65rem 0 0 0.65rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-right: none;
+      background: #0f172a;
+      box-shadow: inset 0 0 0 1px rgba(2, 6, 23, 0.12);
+      cursor: pointer;
+    }
+
+    .color-code-input {
+      border-radius: 0 !important;
+      text-transform: lowercase;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    .input-icon-btn {
+      position: relative;
+      width: 2.5rem;
+      min-width: 2.5rem;
+      height: 2.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.78);
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 0;
+      line-height: 1;
+      font-size: 0.95rem;
+    }
+
+    .input-icon-btn:hover {
+      border-color: rgba(147, 197, 253, 0.55);
+      color: #fff;
+      background: rgba(30, 41, 59, 0.9);
+    }
+
+    .input-icon-btn.paste-btn {
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+    }
+
+    .input-icon-btn.color-picker-btn {
+      border-left: none;
+      border-radius: 0 0.65rem 0.65rem 0;
+      overflow: hidden;
+    }
+
+    .color-picker-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    .button-color-editor-card {
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .button-color-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.6rem;
+    }
+
+    .button-color-inline-note {
+      font-size: 0.75rem;
+      color: inherit;
+      opacity: 0.9;
+    }
+
+    .url-input-row {
+      margin-bottom: 0 !important;
+    }
+
+    .url-input-row .input {
+      border-radius: 0.65rem 0 0 0.65rem;
+    }
+
+    .url-input-row .input-icon-btn.paste-btn {
+      border-left: none;
+      border-right: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 0 0.65rem 0.65rem 0;
+    }
+
+    .icon-search-result {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(30, 41, 59, 0.4);
+      color: var(--title);
+      border-radius: 0.65rem;
+      padding: 0.5rem 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .icon-search-result:hover {
+      border-color: rgba(147, 197, 253, 0.65);
+      background: rgba(37, 99, 235, 0.16);
+      color: #fff;
+    }
+
+    .icon-search-result-media {
+      width: 1.5rem;
+      height: 1.5rem;
+      min-width: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.35rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      overflow: hidden;
+    }
+
+    .icon-search-result-media img {
+      width: 1.25rem;
+      height: 1.25rem;
+      object-fit: contain;
+      display: block;
+    }
+
+    .icon-search-result-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .icon-search-result-name,
+    .icon-search-result-sub {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .icon-search-result-name {
+      font-weight: 700;
+      font-size: 0.92rem;
+      line-height: 1.1;
+      color: inherit;
+    }
+
+    .icon-search-result-sub {
+      font-size: 0.72rem;
+      color: var(--text-soft);
+    }
+
+    @media (max-width: 768px) {
+      .section {
+        padding: 12px;
+      }
+
+      .group-box,
+      .dashboard-settings-box,
+      .admin-editor-box {
+        padding: 12px;
+      }
+
+      .admin-editor-box.mt-3 {
+        margin-top: 12px !important;
+      }
+
+      .admin-editor-box.mb-5 {
+        margin-bottom: 12px !important;
+      }
+
+      .group-box {
+        margin-top: 12px;
+      }
+
+      .group-box.group-end {
+        margin-bottom: 12px;
+      }
+
+      .group-add-panel {
+        margin-top: 12px;
+      }
+
+      .group-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .group-head-main {
+        flex: none;
+        width: 100%;
+        align-items: stretch;
+        gap: 0.4rem;
+      }
+
+      .group-title-input {
+        flex: none;
+        width: 100%;
+        max-width: none;
+      }
+
+      .group-button-color-inline {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .group-button-color-inline .input {
+        flex: 1 1 auto;
+        width: auto;
+      }
+
+      .admin-topbar {
+        align-items: flex-start;
+      }
+
+      .admin-topbar-left {
+        width: 100%;
+      }
+
+      .admin-topbar-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .title-editor {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .title-editor .input {
+        max-width: none;
+      }
+
+      .icon-search-controls {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="admin-shell">
+      <div id="messageBox" class="notification is-hidden"></div>
+
+      <div id="loginView" class="box login-box">
+        <h1 id="loginViewTitle" class="title is-4 mb-2">KISS this dashboard Admin</h1>
+        <p id="loginViewIntro" class="muted mb-4">Log in to manage your dashboard.</p>
+
+        <form id="loginForm">
+          <div class="field">
+            <label class="label">Username</label>
+            <div class="control">
+              <input id="loginUsername" class="input" type="text" placeholder="admin" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Password</label>
+            <div class="control">
+              <input id="loginPassword" class="input" type="password" placeholder="••••••" required />
+            </div>
+          </div>
+          <button class="button is-link" type="submit">Log In</button>
+        </form>
+
+        <form id="bootstrapForm" class="is-hidden">
+          <div class="field">
+            <label class="label">Create Username</label>
+            <div class="control">
+              <input id="bootstrapUsername" class="input" type="text" minlength="3" maxlength="40" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Create Password</label>
+            <div class="control">
+              <input id="bootstrapPassword" class="input" type="password" minlength="4" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Confirm Password</label>
+            <div class="control">
+              <input id="bootstrapConfirmPassword" class="input" type="password" minlength="4" required />
+            </div>
+          </div>
+          <button class="button is-link" type="submit">Create Admin Account</button>
+        </form>
+      </div>
+
+      <div id="adminView" class="is-hidden">
+        <div class="tabs is-boxed mode-tabs">
+          <ul id="mainTabsList"></ul>
+        </div>
+
+          <div class="box panel-box admin-editor-box mt-3 mb-5">
+            <div class="admin-topbar">
+              <div class="admin-topbar-left">
+                <h1 class="title is-4 mb-0">KISS this dashboard Editor</h1>
+                <button id="accountLinkBtn" class="button is-link is-light is-small account-link-btn" type="button">Account</button>
+              </div>
+              <div class="admin-topbar-actions">
+                <button id="logoutBtn" class="button is-danger is-light is-small" type="button">Log Out</button>
+              </div>
+            </div>
+            <div id="firstRunSetupNotice" class="notification is-warning is-light mt-3 mb-0 is-hidden">
+              First-time setup required: change the account password before editing or saving dashboard settings.
+            </div>
+          </div>
+
+        <div id="editorPane">
+          <div class="box panel-box dashboard-settings-box">
+            <div class="settings-head">
+              <h2 class="title is-5">Tab Settings</h2>
+              <div class="settings-actions">
+                <button id="liveColorEditorToggleBtn" class="button is-link is-light is-small" type="button">Live Color Editor</button>
+                <button id="resetStarterConfigBtn" class="button is-warning is-light is-small" type="button">Reset to Starter</button>
+                <button id="deleteDashboardBtn" class="button is-danger is-light is-small delete-dashboard-btn" type="button">Delete this tab</button>
+              </div>
+            </div>
+            <div class="field mb-3">
+              <label class="label">Tab Title</label>
+              <div class="title-editor">
+                <input id="pageTitleInput" class="input" type="text" maxlength="80" placeholder="Dashboard 1" />
+              </div>
+            </div>
+            <div class="field mb-3">
+              <label class="checkbox">
+                <input id="enableInternalLinksCheckbox" type="checkbox" />
+                Use internal and external links
+              </label>
+            </div>
+            <div id="liveColorEditorPanel" class="live-color-editor-panel is-hidden">
+              <div class="live-color-editor-head">
+                <h3 class="title is-6">Live Color Editor</h3>
+                <button id="resetThemeColorsBtn" class="button is-link is-light is-small" type="button">Reset Colors</button>
+              </div>
+              <div class="columns is-multiline">
+              <div class="column is-12">
+                <div class="field mb-0">
+                  <label class="label" for="buttonColorModeSelect">Button Colors</label>
+                  <div class="button-color-editor-card">
+                    <div class="field">
+                      <div class="control">
+                        <div class="select is-fullwidth">
+                          <select id="buttonColorModeSelect">
+                            <option value="cycle-custom">A: Color cycle</option>
+                            <option value="solid-all">C: Solid color (all buttons)</option>
+                            <option value="solid-per-group">D: Solid colors per group</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="buttonColorCycleCustomFields" class="is-hidden">
+                      <div class="button-color-mode-grid">
+                        <div class="field mb-0">
+                          <label class="label" for="buttonCycleHueStepInput">Hue Step</label>
+                          <input id="buttonCycleHueStepInput" class="input button-color-number-input" type="number" min="1" max="180" step="1" />
+                        </div>
+                        <div class="field mb-0">
+                          <label class="label" for="buttonCycleSaturationInput">Saturation (%)</label>
+                          <input id="buttonCycleSaturationInput" class="input button-color-number-input" type="number" min="0" max="100" step="1" />
+                        </div>
+                        <div class="field mb-0">
+                          <label class="label" for="buttonCycleLightnessInput">Lightness (%)</label>
+                          <input id="buttonCycleLightnessInput" class="input button-color-number-input" type="number" min="0" max="100" step="1" />
+                        </div>
+                      </div>
+                    </div>
+                    <div id="buttonColorSolidAllFields" class="is-hidden mt-3">
+                      <div class="field mb-0">
+                        <label class="label" for="buttonSolidColorCodeInput">Button Color</label>
+                        <div class="field has-addons color-picker-row">
+                          <p class="control">
+                            <span id="buttonSolidColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                          </p>
+                          <p class="control is-expanded">
+                            <input id="buttonSolidColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#93c5fd" />
+                          </p>
+                          <p class="control">
+                            <button id="buttonSolidColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                          </p>
+                          <p class="control">
+                            <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                              🎨
+                              <input id="buttonSolidColorInput" class="color-picker-input" type="color" />
+                            </label>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <p id="buttonColorPerGroupHint" class="help mt-3 is-hidden">Per-group button color pickers are shown inside each group block.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="dashboardBgColorCodeInput">Tab Background Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="dashboardBgColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="dashboardBgColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#0f172a" />
+                    </p>
+                    <p class="control">
+                      <button id="dashboardBgColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="dashboardBgColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Background color for this dashboard page.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="groupBgColorCodeInput">Group Box Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="groupBgColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="groupBgColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#111827" />
+                    </p>
+                    <p class="control">
+                      <button id="groupBgColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="groupBgColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Background color for the button groups on this dashboard.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="pageTextColorCodeInput">Page Text Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="pageTextColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="pageTextColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#f8fafc" />
+                    </p>
+                    <p class="control">
+                      <button id="pageTextColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="pageTextColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Main text color for this tab on dashboard and admin.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="buttonTextColorCodeInput">Button Text Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="buttonTextColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="buttonTextColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#0f172a" />
+                    </p>
+                    <p class="control">
+                      <button id="buttonTextColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="buttonTextColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Text color used on dashboard buttons and admin button previews.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="tabColorCodeInput">Tab Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="tabColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="tabColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#1e293b" />
+                    </p>
+                    <p class="control">
+                      <button id="tabColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="tabColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Inactive tab background color.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="activeTabColorCodeInput">Active Tab Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="activeTabColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="activeTabColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#2563eb" />
+                    </p>
+                    <p class="control">
+                      <button id="activeTabColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="activeTabColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Active tab background color.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="tabTextColorCodeInput">Tab Text Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="tabTextColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="tabTextColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#cbd5e1" />
+                    </p>
+                    <p class="control">
+                      <button id="tabTextColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="tabTextColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Inactive tab text color.</p>
+                </div>
+              </div>
+              <div class="column is-6">
+                <div class="field mb-0">
+                  <label class="label" for="activeTabTextColorCodeInput">Active Tab Text Color</label>
+                  <div class="field has-addons color-picker-row">
+                    <p class="control">
+                      <span id="activeTabTextColorSwatch" class="color-swatch-addon" aria-hidden="true"></span>
+                    </p>
+                    <p class="control is-expanded">
+                      <input id="activeTabTextColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#ffffff" />
+                    </p>
+                    <p class="control">
+                      <button id="activeTabTextColorPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code">📋</button>
+                    </p>
+                    <p class="control">
+                      <label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">
+                        🎨
+                        <input id="activeTabTextColorInput" class="color-picker-input" type="color" />
+                      </label>
+                    </p>
+                  </div>
+                  <p class="help mt-2">Active tab text color.</p>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="groupsEditor"></div>
+
+          <div class="box panel-box group-add-panel">
+            <button
+              id="addGroupBtn"
+              class="button is-fullwidth group-add-panel-button"
+              type="button"
+              title="Add group"
+              aria-label="Add group"
+            >+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="entryModal" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <div class="entry-modal-head">
+          <p id="entryModalTitle" class="modal-card-title">Edit Button</p>
+          <div class="entry-modal-head-actions">
+            <button id="entryDeleteBtn" class="button is-danger is-light icon-action" type="button" title="Delete" aria-label="Delete">🗑</button>
+            <button id="entryCloseBtn" class="button icon-action" type="button" title="Close" aria-label="Close">✕</button>
+          </div>
+        </div>
+      </header>
+      <section class="modal-card-body">
+        <div class="columns is-multiline">
+          <div class="column is-12">
+            <label class="label">Button Name</label>
+            <input id="entryNameInput" class="input" type="text" maxlength="80" required />
+          </div>
+          <div id="entryExternalUrlColumn" class="column is-6">
+            <label class="label">External URL</label>
+            <div class="field has-addons url-input-row">
+              <p class="control is-expanded">
+                <input id="entryExternalUrlInput" class="input" type="url" placeholder="https://example.com" />
+              </p>
+              <p class="control">
+                <button id="entryExternalUrlPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste URL" aria-label="Paste URL">📋</button>
+              </p>
+            </div>
+          </div>
+          <div id="entryInternalUrlColumn" class="column is-6">
+            <label class="label">Internal URL</label>
+            <div class="field has-addons url-input-row">
+              <p class="control is-expanded">
+                <input id="entryInternalUrlInput" class="input" type="url" placeholder="http://192.168.x.x:port" />
+              </p>
+              <p class="control">
+                <button id="entryInternalUrlPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste URL" aria-label="Paste URL">📋</button>
+              </p>
+            </div>
+          </div>
+          <div id="entryUrlHelpColumn" class="column is-12">
+            <p id="entryUrlHelpText" class="help">At least one URL (external or internal) is required.</p>
+          </div>
+          <div id="entryIconFilenameColumn" class="column is-6">
+            <label class="label">Icon Filename</label>
+            <input id="entryIconInput" class="input" type="text" maxlength="120" placeholder="example.svg" />
+            <p id="entryIconInputHint" class="help mt-2 is-hidden">Available after the button is saved.</p>
+            <p id="entryIconPreview" class="help mt-2">No icon configured</p>
+          </div>
+          <div class="column is-6">
+            <label class="label">Upload Icon</label>
+            <input id="entryIconUpload" class="input" type="file" accept="image/*" />
+            <label class="checkbox mt-2">
+              <input id="entryClearIconData" type="checkbox" />
+              Clear embedded uploaded icon
+            </label>
+          </div>
+          <div class="column is-12">
+            <label class="label">Search Icon Library</label>
+            <div class="field mb-2">
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select id="entryIconSourceSelect">
+                    <option value="selfhst">selfh.st/icons</option>
+                    <option value="iconify-simple">Iconify (Simple Icons)</option>
+                    <option value="iconify-logos">Iconify (Logos)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="icon-search-controls">
+              <div class="control is-expanded">
+                <input id="entryIconSearchInput" class="input" type="search" maxlength="80" placeholder="Search service icon (e.g. grafana, proxmox, adguard)" />
+              </div>
+            </div>
+            <p class="help mt-2">Search a selected icon library and import a result. The selected icon is embedded locally in your dashboard config.</p>
+            <p id="entryIconSearchStatus" class="help mt-2 muted"></p>
+            <div id="entryIconSearchResults" class="icon-search-results"></div>
+          </div>
+        </div>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <div class="buttons">
+          <button id="entryCancelBtn" class="button" type="button">Cancel</button>
+          <button id="entrySaveBtn" class="button is-link" type="button">Save Button</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <div id="accountPane" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <div class="account-modal-head">
+          <p class="modal-card-title">Account</p>
+          <div class="account-modal-head-actions">
+            <button id="accountCloseBtn" class="button icon-action" type="button" title="Close" aria-label="Close">✕</button>
+          </div>
+        </div>
+      </header>
+      <section class="modal-card-body">
+        <p class="muted mb-4">Update username and password.</p>
+        <div id="accountSetupNotice" class="notification is-warning is-light is-hidden">
+          First-time setup: change the account password before using the editor.
+        </div>
+
+        <form id="usernameForm" class="mb-5">
+          <div class="field">
+            <label class="label">Current Username</label>
+            <div class="control">
+              <input id="currentUsername" class="input" type="text" readonly />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">New Username</label>
+            <div class="control">
+              <input id="newUsername" class="input" type="text" minlength="3" maxlength="40" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Current Password</label>
+            <div class="control">
+              <input id="usernameCurrentPassword" class="input" type="password" required />
+            </div>
+          </div>
+          <button class="button is-link" type="submit">Update Username</button>
+        </form>
+
+        <h3 class="title is-6">Change Password</h3>
+        <form id="passwordForm">
+          <div class="field">
+            <label class="label">Current Password</label>
+            <div class="control">
+              <input id="currentPassword" class="input" type="password" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">New Password</label>
+            <div class="control">
+              <input id="newPassword" class="input" type="password" minlength="4" required />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Confirm New Password</label>
+            <div class="control">
+              <input id="confirmPassword" class="input" type="password" minlength="4" required />
+            </div>
+          </div>
+          <button class="button is-link" type="submit">Update Password</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div id="groupActionModal" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p id="groupActionModalTitle" class="modal-card-title">Add Group</p>
+      </header>
+      <section class="modal-card-body">
+        <p id="groupActionModalText" class="mb-3">Create a new group.</p>
+        <div id="groupActionTitleField" class="field">
+          <label id="groupActionTitleLabel" class="label">Group Title</label>
+          <input
+            id="groupActionTitleInput"
+            class="input"
+            type="text"
+            maxlength="80"
+            placeholder="New Group"
+          />
+        </div>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <div class="buttons">
+          <button id="groupActionCancelBtn" class="button" type="button">Cancel</button>
+          <button id="groupActionConfirmBtn" class="button is-link" type="button">Add Group</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="dashboard-common.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

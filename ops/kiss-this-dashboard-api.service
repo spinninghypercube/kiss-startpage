@@ -1,0 +1,19 @@
+[Unit]
+Description=KISS this dashboard API
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=www-data
+WorkingDirectory=/srv/www/kiss-this-dashboard/current
+Environment=DASH_BIND=127.0.0.1
+Environment=DASH_PORT=8788
+Environment=DASH_DATA_DIR=/srv/www/kiss-this-dashboard/shared/data
+Environment=DASH_DEFAULT_CONFIG=/srv/www/kiss-this-dashboard/current/dashboard-default-config.json
+ExecStart=/usr/bin/python3 /srv/www/kiss-this-dashboard/current/backend/dashboard_api.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
