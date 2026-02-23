@@ -1714,6 +1714,23 @@
     });
   }
 
+  function getNextCustomThemePresetName() {
+    const existingNames = new Set(
+      getNormalizedSavedThemePresets()
+        .map((preset) => (preset && typeof preset.name === "string" ? preset.name.trim().toLowerCase() : ""))
+        .filter(Boolean)
+    );
+
+    for (let index = 1; index < 10000; index += 1) {
+      const candidate = `Custom theme ${index}`;
+      if (!existingNames.has(candidate.toLowerCase())) {
+        return candidate;
+      }
+    }
+
+    return `Custom theme ${Date.now()}`;
+  }
+
   function refreshThemePresetButtons() {
     const selectedValue = themePresetSelect && themePresetSelect.value ? themePresetSelect.value.trim() : "";
     const hasSelection = Boolean(selectedValue);
@@ -1837,10 +1854,10 @@
       return;
     }
     applyThemePresetThemeToControls(preset.theme);
-    if (themePresetNameInput && !themePresetNameInput.value.trim()) {
-      themePresetNameInput.value = preset.name;
+    if (themePresetNameInput) {
+      themePresetNameInput.value = getNextCustomThemePresetName();
     }
-    await saveActiveDashboardSettings();
+    await saveActiveDashboardSettings({ silentSuccess: true });
   }
 
   async function saveCurrentThemePreset() {
@@ -2942,8 +2959,9 @@
     await persistConfig("Tab title updated.");
   }
 
-  async function saveActiveDashboardSettings() {
+  async function saveActiveDashboardSettings(options = {}) {
     hideMessage();
+    const silentSuccess = Boolean(options && options.silentSuccess);
 
     const dashboard = getActiveDashboard();
     if (!dashboard) {
@@ -3003,7 +3021,7 @@
     dashboard.buttonCycleSaturation = nextButtonColorSettings.buttonCycleSaturation;
     dashboard.buttonCycleLightness = nextButtonColorSettings.buttonCycleLightness;
     dashboard.buttonSolidColor = nextButtonColorSettings.buttonSolidColor;
-    await persistConfig("Tab settings updated.");
+    await persistConfig(silentSuccess ? "" : "Tab settings updated.");
   }
 
   async function autoSaveButtonFromModal(showErrors = true) {
@@ -3321,8 +3339,8 @@
         themePresetSelect.dataset.lastValue = themePresetSelect.value || "";
       }
       const preset = getSelectedThemePreset();
-      if (preset && themePresetNameInput && !themePresetNameInput.value.trim()) {
-        themePresetNameInput.value = preset.name;
+      if (preset && themePresetNameInput) {
+        themePresetNameInput.value = getNextCustomThemePresetName();
       }
       refreshThemePresetButtons();
       if (!preset) {
