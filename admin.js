@@ -612,7 +612,11 @@
     }
     const headerOffsetTop = Number(headerEl.offsetTop) || 0;
     const headerHeight = Number(headerEl.offsetHeight) || 0;
-    const previewHeight = Math.max(44, Math.ceil(headerOffsetTop + headerHeight));
+    const titleInputEl = state.item.querySelector(".group-title-input");
+    const inputOffsetTop = titleInputEl ? Number(titleInputEl.offsetTop) || 0 : headerOffsetTop;
+    const previewBottom = headerOffsetTop + headerHeight;
+    const balancedPreviewHeight = previewBottom + Math.max(8, inputOffsetTop);
+    const previewHeight = Math.max(44, Math.ceil(balancedPreviewHeight));
     state.item.classList.add("sortable-group-floating-preview");
     state.item.style.height = `${previewHeight}px`;
     state.item.style.overflow = "hidden";
