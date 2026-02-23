@@ -143,6 +143,10 @@
     buttonId: ""
   };
   let activePointerSort = null;
+  const EXPERIMENTAL_DRAG_PRESETS = Object.freeze({
+    tabs: true,
+    buttons: true
+  });
 
   const loginView = document.getElementById("loginView");
   const adminView = document.getElementById("adminView");
@@ -577,6 +581,27 @@
     return line;
   }
 
+  function createTabSortPlaceholder(itemEl, rect) {
+    const line = document.createElement("li");
+    line.className = "sortable-placeholder sortable-placeholder-tab-line";
+    line.style.width = "12px";
+    line.style.minWidth = "12px";
+    line.style.height = `${Math.max(24, Math.ceil(rect.height))}px`;
+    line.style.margin = "0";
+    line.setAttribute("aria-hidden", "true");
+    return line;
+  }
+
+  function createButtonSortPlaceholder(itemEl, rect) {
+    const slot = document.createElement("div");
+    slot.className = `${itemEl && itemEl.className ? itemEl.className : "column"} sortable-placeholder sortable-placeholder-grid-slot`;
+    slot.style.minHeight = `${Math.ceil(rect.height)}px`;
+    slot.style.height = `${Math.ceil(rect.height)}px`;
+    slot.style.margin = "0";
+    slot.setAttribute("aria-hidden", "true");
+    return slot;
+  }
+
   function configureGroupSortFloatingPreview(state) {
     if (!state || !state.item) {
       return;
@@ -589,6 +614,34 @@
     const headerHeight = Number(headerEl.offsetHeight) || 0;
     const previewHeight = Math.max(44, Math.ceil(headerOffsetTop + headerHeight));
     state.item.classList.add("sortable-group-floating-preview");
+    state.item.style.height = `${previewHeight}px`;
+    state.item.style.overflow = "hidden";
+  }
+
+  function configureButtonSortFloatingPreview(state) {
+    if (!state || !state.item) {
+      return;
+    }
+    const previewButton = state.item.querySelector(".entry-preview-button");
+    if (!previewButton) {
+      return;
+    }
+    const previewHeight = Math.max(44, Math.ceil((Number(previewButton.offsetTop) || 0) + (Number(previewButton.offsetHeight) || 0)));
+    state.item.classList.add("sortable-button-floating-preview");
+    state.item.style.height = `${previewHeight}px`;
+    state.item.style.overflow = "hidden";
+  }
+
+  function configureTabSortFloatingPreview(state) {
+    if (!state || !state.item) {
+      return;
+    }
+    const tabLink = state.item.querySelector("a");
+    if (!tabLink) {
+      return;
+    }
+    const previewHeight = Math.max(24, Math.ceil((Number(tabLink.offsetTop) || 0) + (Number(tabLink.offsetHeight) || 0)));
+    state.item.classList.add("sortable-tab-floating-preview");
     state.item.style.height = `${previewHeight}px`;
     state.item.style.overflow = "hidden";
   }
@@ -730,6 +783,27 @@
     return typeof itemEl.getBoundingClientRect === "function" ? itemEl.getBoundingClientRect() : null;
   }
 
+  function resolvePointerSortAutoScrollContainer(state) {
+    if (!state || !state.options) {
+      return null;
+    }
+    const options = state.options;
+    let target = null;
+
+    if (typeof options.autoScrollContainer === "function") {
+      target = options.autoScrollContainer(state) || null;
+    } else if (options.autoScrollContainer && typeof options.autoScrollContainer === "object") {
+      target = options.autoScrollContainer;
+    } else if (options.autoScrollContainerSelector && state.container && typeof state.container.closest === "function") {
+      target = state.container.closest(String(options.autoScrollContainerSelector)) || null;
+    }
+
+    if (!target || typeof target.getBoundingClientRect !== "function") {
+      return null;
+    }
+    return target;
+  }
+
   function stopPointerSortAutoScroll(state) {
     if (!state) {
       return;
@@ -756,7 +830,19 @@
     }
 
     let scrolled = false;
-    if (typeof window !== "undefined") {
+    const scrollContainer = resolvePointerSortAutoScrollContainer(state);
+    if (scrollContainer) {
+      if (vx) {
+        const beforeLeft = scrollContainer.scrollLeft;
+        scrollContainer.scrollLeft += vx;
+        scrolled = scrolled || beforeLeft !== scrollContainer.scrollLeft;
+      }
+      if (vy) {
+        const beforeTop = scrollContainer.scrollTop;
+        scrollContainer.scrollTop += vy;
+        scrolled = scrolled || beforeTop !== scrollContainer.scrollTop;
+      }
+    } else if (typeof window !== "undefined") {
       if (vx) {
         const beforeX = window.scrollX || window.pageXOffset || 0;
         window.scrollBy(vx, 0);
@@ -797,25 +883,35 @@
     const axisMode = state.options.autoScrollAxis || "y";
     const allowX = axisMode === "x" || axisMode === "both";
     const allowY = axisMode === "y" || axisMode === "both";
-    const viewportWidth = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
-    const viewportHeight = Math.max(0, window.innerHeight || document.documentElement.clientHeight || 0);
+    const scrollContainer = resolvePointerSortAutoScrollContainer(state);
+    const boundsRect = scrollContainer ? scrollContainer.getBoundingClientRect() : null;
+    const viewportWidth = Math.max(
+      0,
+      boundsRect ? boundsRect.width : window.innerWidth || document.documentElement.clientWidth || 0
+    );
+    const viewportHeight = Math.max(
+      0,
+      boundsRect ? boundsRect.height : window.innerHeight || document.documentElement.clientHeight || 0
+    );
+    const localX = boundsRect ? clientX - boundsRect.left : clientX;
+    const localY = boundsRect ? clientY - boundsRect.top : clientY;
 
     let vx = 0;
     let vy = 0;
 
     if (allowY && viewportHeight > 0) {
-      if (clientY < edge) {
-        vy = -Math.ceil(((edge - clientY) / edge) * maxSpeed);
-      } else if (clientY > viewportHeight - edge) {
-        vy = Math.ceil(((clientY - (viewportHeight - edge)) / edge) * maxSpeed);
+      if (localY < edge) {
+        vy = -Math.ceil((Math.min(edge, edge - localY) / edge) * maxSpeed);
+      } else if (localY > viewportHeight - edge) {
+        vy = Math.ceil((Math.min(edge, localY - (viewportHeight - edge)) / edge) * maxSpeed);
       }
     }
 
     if (allowX && viewportWidth > 0) {
-      if (clientX < edge) {
-        vx = -Math.ceil(((edge - clientX) / edge) * maxSpeed);
-      } else if (clientX > viewportWidth - edge) {
-        vx = Math.ceil(((clientX - (viewportWidth - edge)) / edge) * maxSpeed);
+      if (localX < edge) {
+        vx = -Math.ceil((Math.min(edge, edge - localX) / edge) * maxSpeed);
+      } else if (localX > viewportWidth - edge) {
+        vx = Math.ceil((Math.min(edge, localX - (viewportWidth - edge)) / edge) * maxSpeed);
       }
     }
 
@@ -1072,6 +1168,8 @@
     }
 
     if (state.item) {
+      state.item.classList.remove("sortable-tab-floating-preview");
+      state.item.classList.remove("sortable-button-floating-preview");
       state.item.classList.remove("sortable-group-floating-preview");
       state.item.classList.remove("sortable-floating");
       if (state.originalStyleAttr === null) {
@@ -2645,11 +2743,25 @@
 
     ensureMainTabsEditToggle();
 
+    const tabDragPresetOptions = EXPERIMENTAL_DRAG_PRESETS.tabs
+      ? {
+          sortRectSelector: "a",
+          createPlaceholder: createTabSortPlaceholder,
+          configureFloatingPreview: configureTabSortFloatingPreview,
+          autoScroll: true,
+          autoScrollAxis: "x",
+          autoScrollEdge: 72,
+          autoScrollMaxSpeed: 18,
+          autoScrollContainer: () => mainTabsScroll
+        }
+      : {};
+
     bindPointerSortable(mainTabsList, {
       itemSelector: "[data-tab-sort-item]",
       handleSelector: ".tab-drag-handle",
       axis: "horizontal",
       endBeforeSelector: ".add-tab",
+      ...tabDragPresetOptions,
       errorMessage: "Failed to reorder tabs.",
       onReorder: async (fromIndex, toIndex) => {
         if (!moveArrayItem(config.dashboards, fromIndex, toIndex)) {
@@ -2751,12 +2863,25 @@
     addCol.appendChild(addCard);
     wrapper.appendChild(addCol);
 
+    const buttonDragPresetOptions = EXPERIMENTAL_DRAG_PRESETS.buttons
+      ? {
+          sortRectSelector: ".entry-preview-button",
+          createPlaceholder: createButtonSortPlaceholder,
+          configureFloatingPreview: configureButtonSortFloatingPreview,
+          autoScroll: true,
+          autoScrollAxis: "y",
+          autoScrollEdge: 92,
+          autoScrollMaxSpeed: 20
+        }
+      : {};
+
     bindPointerSortable(wrapper, {
       itemSelector: "[data-button-sort-item]",
       handleSelector: ".button-drag-handle",
       axis: "grid",
       crossContainerSelector: "[data-button-sort-container]",
       endBeforeSelector: "[data-entry-add-slot]",
+      ...buttonDragPresetOptions,
       errorMessage: "Failed to reorder buttons.",
       onReorder: async (fromIndex, toIndex) => {
         const activeDashboard = getActiveDashboard();
