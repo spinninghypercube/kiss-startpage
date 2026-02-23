@@ -1782,7 +1782,7 @@
 
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = "Select a theme preset...";
+    placeholder.textContent = "-Select a theme-";
     themePresetSelect.appendChild(placeholder);
     validValues.add("");
 
