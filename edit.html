@@ -222,10 +222,35 @@
       font-weight: 700;
     }
 
-    .mode-tabs ul {
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    .mode-tabs-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
       flex-wrap: wrap;
       width: 100%;
+    }
+
+    .mode-tabs-scroll {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .mode-tabs-actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+
+    .mode-tabs ul {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      flex-wrap: nowrap;
+      width: max-content;
+      min-width: 100%;
     }
 
     .mode-tabs .add-tab a {
@@ -297,7 +322,7 @@
       color: var(--dashboard-nav-tab-hover-text);
     }
 
-    .mode-tabs .nav-action-tab .nav-edit-mode-toggle {
+    .mode-tabs .nav-edit-mode-toggle {
       margin-top: 0.18rem;
       padding: 0;
       border: none !important;
@@ -1305,15 +1330,31 @@
         width: auto;
       }
 
-      .theme-preset-toolbar,
-      .theme-preset-save-row {
+      .theme-preset-toolbar {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.35rem;
       }
 
-      .theme-preset-toolbar .button,
-      .theme-preset-save-row .button {
+      .theme-preset-toolbar .button {
         width: 100%;
+      }
+
+      .theme-preset-save-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: stretch;
+        gap: 0.35rem;
+      }
+
+      .theme-preset-save-row .input {
+        min-width: 0;
+      }
+
+      .theme-preset-save-row .button {
+        width: auto;
+        margin: 0 !important;
+        white-space: nowrap;
       }
 
       .entry-modal-footer {
@@ -1357,6 +1398,19 @@
         width: auto;
         flex: 0 0 auto;
         margin-left: auto;
+        justify-content: flex-end;
+      }
+
+      .mode-tabs-row {
+        align-items: stretch;
+      }
+
+      .mode-tabs-scroll {
+        flex: 1 0 100%;
+      }
+
+      .mode-tabs-actions {
+        flex: 1 0 100%;
         justify-content: flex-end;
       }
 
@@ -1425,7 +1479,12 @@
 
       <div id="adminView" class="is-hidden">
         <div class="tabs is-boxed mode-tabs">
-          <ul id="mainTabsList"></ul>
+          <div class="mode-tabs-row">
+            <div class="mode-tabs-scroll">
+              <ul id="mainTabsList"></ul>
+            </div>
+            <div id="mainTabsActions" class="mode-tabs-actions"></div>
+          </div>
         </div>
 
           <div class="admin-topbar-shell mt-3 mb-5">
@@ -1949,6 +2008,6 @@
   </div>
 
   <script src="dashboard-common.js?v=1.3.20"></script>
-  <script src="admin.js?v=1.3.21"></script>
+  <script src="admin.js?v=1.3.22"></script>
 </body>
 </html>

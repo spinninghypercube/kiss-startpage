@@ -7,6 +7,7 @@
 
   const dashboardTabsWrapEl = document.getElementById("dashboardTabsWrap");
   const dashboardTabListEl = document.getElementById("dashboardTabList");
+  const dashboardTabActionsEl = document.getElementById("dashboardTabActions");
   const toolbarModeRowEl = document.getElementById("toolbarModeRow");
   const linkModeToggleEl = document.getElementById("linkModeToggle");
   const linkModeTextLabelEl = document.getElementById("linkModeTextLabel");
@@ -271,6 +272,9 @@
 
   function renderDashboardTabs() {
     dashboardTabListEl.innerHTML = "";
+    if (dashboardTabActionsEl) {
+      dashboardTabActionsEl.innerHTML = "";
+    }
     const showDashboardTabs = config.dashboards.length > 1;
 
     if (showDashboardTabs) {
@@ -292,17 +296,16 @@
       });
     }
 
-    const navLi = document.createElement("li");
-    navLi.className = "nav-action-tab";
-    navLi.appendChild(
-      createEditModeNavToggle(false, (checked) => {
-        if (!checked) {
-          return;
-        }
-        window.location.href = "/edit.html";
-      })
-    );
-    dashboardTabListEl.appendChild(navLi);
+    if (dashboardTabActionsEl) {
+      dashboardTabActionsEl.appendChild(
+        createEditModeNavToggle(false, (checked) => {
+          if (!checked) {
+            return;
+          }
+          window.location.href = "/edit.html";
+        })
+      );
+    }
 
     if (dashboardTabsWrapEl) {
       dashboardTabsWrapEl.classList.remove("is-hidden");

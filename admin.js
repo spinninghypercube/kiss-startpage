@@ -160,6 +160,7 @@
   const logoutBtn = document.getElementById("logoutBtn");
 
   const mainTabsList = document.getElementById("mainTabsList");
+  const mainTabsActions = document.getElementById("mainTabsActions");
   const editorPane = document.getElementById("editorPane");
   const accountPane = document.getElementById("accountPane");
   const accountLinkBtn = document.getElementById("accountLinkBtn");
@@ -1562,7 +1563,7 @@
         {
           id: DashboardCommon.createId("dashboard"),
           label: "Dashboard 1",
-          ...buildDefaultThemeValues({ preferSavedDefaultTheme: true }),
+          ...buildDefaultThemeValues(),
           enableInternalLinks: false,
           showLinkModeToggle: true,
           themePresets: [],
@@ -1598,15 +1599,7 @@
     return getResolvedBuiltInThemePresets().find((preset) => preset && preset.id === "builtin-default-theme") || null;
   }
 
-  function buildDefaultThemeValues(options = {}) {
-    const preferSavedDefaultTheme = Boolean(options && options.preferSavedDefaultTheme);
-    if (preferSavedDefaultTheme) {
-      const savedDefaultTheme = getNamedSavedThemePreset("Default Theme");
-      if (savedDefaultTheme && savedDefaultTheme.theme) {
-        return { ...normalizeThemePresetTheme(savedDefaultTheme.theme) };
-      }
-    }
-
+  function buildDefaultThemeValues() {
     const builtInDefaultTheme = getBuiltInDefaultThemePreset();
     if (builtInDefaultTheme && builtInDefaultTheme.theme) {
       return { ...normalizeThemePresetTheme(builtInDefaultTheme.theme) };
@@ -2482,6 +2475,9 @@
 
   function renderMainTabs() {
     mainTabsList.innerHTML = "";
+    if (mainTabsActions) {
+      mainTabsActions.innerHTML = "";
+    }
     ensureActiveDashboard();
 
     config.dashboards.forEach((dashboard) => {
@@ -2526,17 +2522,16 @@
     addLi.appendChild(addLink);
     mainTabsList.appendChild(addLi);
 
-    const navLi = document.createElement("li");
-    navLi.className = "nav-action-tab";
-    navLi.appendChild(
-      createEditModeNavToggle(true, (checked) => {
-        if (checked) {
-          return;
-        }
-        window.location.href = "/";
-      })
-    );
-    mainTabsList.appendChild(navLi);
+    if (mainTabsActions) {
+      mainTabsActions.appendChild(
+        createEditModeNavToggle(true, (checked) => {
+          if (checked) {
+            return;
+          }
+          window.location.href = "/";
+        })
+      );
+    }
 
     bindPointerSortable(mainTabsList, {
       itemSelector: "[data-tab-sort-item]",
@@ -3683,7 +3678,7 @@
       const dashboard = {
         id: DashboardCommon.createId("dashboard"),
         label,
-        ...buildDefaultThemeValues({ preferSavedDefaultTheme: true }),
+        ...buildDefaultThemeValues(),
         enableInternalLinks: false,
         showLinkModeToggle: true,
         themePresets: [],

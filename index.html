@@ -74,6 +74,30 @@
       font-weight: 700;
     }
 
+    .mode-tabs-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .mode-tabs-scroll {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .mode-tabs-actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+
     .mode-tabs .add-tab a {
       display: flex;
       align-items: center;
@@ -91,8 +115,9 @@
 
     .mode-tabs ul {
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      flex-wrap: wrap;
-      width: 100%;
+      flex-wrap: nowrap;
+      width: max-content;
+      min-width: 100%;
     }
 
     .tabs.is-boxed a {
@@ -131,7 +156,7 @@
       color: var(--dashboard-nav-tab-hover-text);
     }
 
-    .mode-tabs .nav-action-tab .nav-edit-mode-toggle {
+    .mode-tabs .nav-edit-mode-toggle {
       margin-top: 0.18rem;
       padding: 0;
       border: none !important;
@@ -339,6 +364,19 @@
         padding: 4px 0;
       }
 
+      .mode-tabs-row {
+        align-items: stretch;
+      }
+
+      .mode-tabs-scroll {
+        flex: 1 0 100%;
+      }
+
+      .mode-tabs-actions {
+        flex: 1 0 100%;
+        justify-content: flex-end;
+      }
+
       .group-box {
         padding: 12px;
       }
@@ -359,7 +397,12 @@
     <div class="dashboard-shell">
       <div class="toolbar">
         <div id="dashboardTabsWrap" class="tabs is-boxed mode-tabs">
-          <ul id="dashboardTabList"></ul>
+          <div class="mode-tabs-row">
+            <div class="mode-tabs-scroll">
+              <ul id="dashboardTabList"></ul>
+            </div>
+            <div id="dashboardTabActions" class="mode-tabs-actions"></div>
+          </div>
         </div>
         <div id="toolbarModeRow" class="toolbar-mode-row">
           <div class="mode-switch dashboard-link-mode" aria-label="Link mode switch">
@@ -377,6 +420,6 @@
   </section>
 
   <script src="dashboard-common.js?v=1.3.16"></script>
-  <script src="dashboard.js?v=1.3.16"></script>
+  <script src="dashboard.js?v=1.3.17"></script>
 </body>
 </html>
