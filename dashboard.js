@@ -9,6 +9,8 @@
   const dashboardTabListEl = document.getElementById("dashboardTabList");
   const dashboardTabActionsEl = document.getElementById("dashboardTabActions");
   const toolbarModeRowEl = document.getElementById("toolbarModeRow");
+  const toolbarModeActionsEl = document.getElementById("toolbarModeActions");
+  const dashboardLinkModeSwitchEl = document.getElementById("dashboardLinkModeSwitch");
   const linkModeToggleEl = document.getElementById("linkModeToggle");
   const linkModeTextLabelEl = document.getElementById("linkModeTextLabel");
   const contentEl = document.getElementById("dashboardContent");
@@ -275,6 +277,9 @@
     if (dashboardTabActionsEl) {
       dashboardTabActionsEl.innerHTML = "";
     }
+    if (toolbarModeActionsEl) {
+      toolbarModeActionsEl.innerHTML = "";
+    }
     const showDashboardTabs = config.dashboards.length > 1;
 
     if (showDashboardTabs) {
@@ -296,8 +301,8 @@
       });
     }
 
-    if (dashboardTabActionsEl) {
-      dashboardTabActionsEl.appendChild(
+    if (toolbarModeActionsEl) {
+      toolbarModeActionsEl.appendChild(
         createEditModeNavToggle(false, (checked) => {
           if (!checked) {
             return;
@@ -316,8 +321,12 @@
     const dashboard = getActiveDashboard();
     const internalEnabled = Boolean(dashboard && dashboard.enableInternalLinks);
     const showToggle = internalEnabled;
+    if (dashboardLinkModeSwitchEl) {
+      dashboardLinkModeSwitchEl.classList.toggle("is-hidden", !showToggle);
+    }
     if (toolbarModeRowEl) {
-      toolbarModeRowEl.classList.toggle("is-hidden", !showToggle);
+      const hasActions = Boolean(toolbarModeActionsEl && toolbarModeActionsEl.childElementCount);
+      toolbarModeRowEl.classList.toggle("is-hidden", !showToggle && !hasActions);
     }
     const isInternal = currentLinkMode === "internal";
     linkModeToggleEl.checked = isInternal;
