@@ -864,6 +864,10 @@
       justify-content: center;
     }
 
+    .entry-modal-delete-btn {
+      margin-right: auto;
+    }
+
     .entry-icon img {
       width: 1.2rem;
       height: 1.2rem;
@@ -1342,9 +1346,6 @@
                         </span>
                       </p>
                       <p class="control">
-                        <button id="themePresetPreviewBtn" class="button is-light" type="button">Preview</button>
-                      </p>
-                      <p class="control">
                         <button id="themePresetApplyBtn" class="button is-link is-light" type="button">Load</button>
                       </p>
                       <p class="control">
@@ -1635,7 +1636,6 @@
         <div class="entry-modal-head">
           <p id="entryModalTitle" class="modal-card-title">Edit Button</p>
           <div class="entry-modal-head-actions">
-            <button id="entryDeleteBtn" class="button is-danger is-light icon-action" type="button" title="Delete" aria-label="Delete">🗑</button>
             <button id="entryCloseBtn" class="button icon-action" type="button" title="Close" aria-label="Close">✕</button>
           </div>
         </div>
@@ -1709,8 +1709,9 @@
           </div>
         </div>
       </section>
-      <footer class="modal-card-foot is-justify-content-flex-end">
+      <footer class="modal-card-foot">
         <div class="buttons">
+          <button id="entryDeleteBtn" class="button is-danger is-light entry-modal-delete-btn" type="button">Delete Button</button>
           <button id="entryCancelBtn" class="button" type="button">Cancel</button>
           <button id="entrySaveBtn" class="button is-link" type="button">Save Button</button>
         </div>
@@ -1811,7 +1812,7 @@
     </div>
   </div>
 
-  <script src="dashboard-common.js?v=1.3.2"></script>
-  <script src="admin.js?v=1.3.2"></script>
+  <script src="dashboard-common.js?v=1.3.3"></script>
+  <script src="admin.js?v=1.3.3"></script>
 </body>
 </html>

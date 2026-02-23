@@ -611,6 +611,17 @@
     state.item.style.transform = `translate(${Math.round(nextLeft)}px, ${Math.round(nextTop)}px)`;
   }
 
+  function chooseInsertBeforeWithHysteresis(position, center, size, delta) {
+    const hysteresis = Math.max(6, Math.min(18, Number(size || 0) * 0.14));
+    if (delta > 0) {
+      return position < center - hysteresis;
+    }
+    if (delta < 0) {
+      return position < center + hysteresis;
+    }
+    return position < center;
+  }
+
   function repositionPointerSortPlaceholder(state, clientX, clientY) {
     if (!state || !state.started || !state.placeholder || !state.container) {
       return;
@@ -618,6 +629,12 @@
 
     const { container, options, placeholder } = state;
     const itemSelector = options.itemSelector;
+    const previousX = typeof state.lastRepositionX === "number" ? state.lastRepositionX : clientX;
+    const previousY = typeof state.lastRepositionY === "number" ? state.lastRepositionY : clientY;
+    const deltaX = clientX - previousX;
+    const deltaY = clientY - previousY;
+    state.lastRepositionX = clientX;
+    state.lastRepositionY = clientY;
     const targetNode = document.elementFromPoint(clientX, clientY);
     let targetItem =
       targetNode && typeof targetNode.closest === "function" ? targetNode.closest(itemSelector) : null;
@@ -639,15 +656,15 @@
       let insertBefore = false;
 
       if (options.axis === "vertical") {
-        insertBefore = clientY < centerY;
+        insertBefore = chooseInsertBeforeWithHysteresis(clientY, centerY, rect.height, deltaY);
       } else if (options.axis === "horizontal") {
-        insertBefore = clientX < centerX;
+        insertBefore = chooseInsertBeforeWithHysteresis(clientX, centerX, rect.width, deltaX);
       } else {
         const yOffset = clientY - centerY;
         if (Math.abs(yOffset) > rect.height * 0.28) {
-          insertBefore = yOffset < 0;
+          insertBefore = chooseInsertBeforeWithHysteresis(clientY, centerY, rect.height, deltaY);
         } else {
-          insertBefore = clientX < centerX;
+          insertBefore = chooseInsertBeforeWithHysteresis(clientX, centerX, rect.width, deltaX);
         }
       }
 
@@ -2959,6 +2976,13 @@
         themePresetNameInput.value = preset.name;
       }
       refreshThemePresetButtons();
+      if (!preset) {
+        return;
+      }
+      loadSelectedThemePreset().catch((error) => {
+        console.error(error);
+        showMessage("Failed to load theme preset.", "is-danger");
+      });
     });
   }
 
