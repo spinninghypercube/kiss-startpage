@@ -2671,23 +2671,21 @@
         });
       });
 
-      const actions = document.createElement("div");
-      actions.className = "mini-actions compact-row";
-
       const deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
-      setIconActionButton(deleteBtn, "is-danger is-light", "🗑", "Delete group");
+      deleteBtn.className = "button is-danger is-light is-small group-delete-btn";
+      deleteBtn.textContent = "Delete group";
+      deleteBtn.title = "Delete group";
+      deleteBtn.setAttribute("aria-label", "Delete group");
       deleteBtn.addEventListener("click", () => openDeleteGroupModal(dashboard, group));
-
-      actions.appendChild(deleteBtn);
 
       headerMain.appendChild(dragHandle);
       headerMain.appendChild(titleInput);
       if (showPerGroupButtonColors) {
         headerMain.appendChild(createGroupButtonColorInlineControl(previewDashboard, group, groupIndex));
       }
+      headerMain.appendChild(deleteBtn);
       header.appendChild(headerMain);
-      header.appendChild(actions);
       box.appendChild(header);
 
       const buttons = renderGroupButtons(previewDashboard, group, groupIndex, colorIndex);

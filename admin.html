@@ -689,6 +689,12 @@
       max-width: 420px;
     }
 
+    .group-head-main .group-delete-btn {
+      margin-left: auto;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
     .group-button-color-inline {
       display: inline-flex;
       align-items: center;
@@ -1232,17 +1238,29 @@
       .group-head-main {
         flex: none;
         width: 100%;
-        align-items: stretch;
+        align-items: center;
         gap: 0.4rem;
       }
 
       .group-title-input {
-        flex: none;
-        width: 100%;
+        order: 2;
+        flex: 1 1 0;
+        width: auto;
         max-width: none;
+        min-width: 0;
+      }
+
+      .group-head-main .group-drag-handle {
+        order: 1;
+      }
+
+      .group-head-main .group-delete-btn {
+        order: 3;
+        margin-left: 0;
       }
 
       .group-button-color-inline {
+        order: 4;
         width: 100%;
         justify-content: flex-start;
       }
@@ -1880,7 +1898,7 @@
     </div>
   </div>
 
-  <script src="dashboard-common.js?v=1.3.12"></script>
-  <script src="admin.js?v=1.3.12"></script>
+  <script src="dashboard-common.js?v=1.3.13"></script>
+  <script src="admin.js?v=1.3.13"></script>
 </body>
 </html>
