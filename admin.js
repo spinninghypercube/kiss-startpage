@@ -161,6 +161,8 @@
 
   const mainTabsList = document.getElementById("mainTabsList");
   const mainTabsActions = document.getElementById("mainTabsActions");
+  const mainTabsScroll = mainTabsList ? mainTabsList.closest(".mode-tabs-scroll") : null;
+  const mainTabsRow = mainTabsList ? mainTabsList.closest(".mode-tabs-row") : null;
   const editorPane = document.getElementById("editorPane");
   const accountPane = document.getElementById("accountPane");
   const accountLinkBtn = document.getElementById("accountLinkBtn");
@@ -2473,6 +2475,14 @@
     }
   }
 
+  function updateMainTabsOverflowLayout() {
+    if (!mainTabsScroll || !mainTabsRow) {
+      return;
+    }
+    const overflowing = mainTabsScroll.scrollWidth > mainTabsScroll.clientWidth + 1;
+    mainTabsRow.classList.toggle("tabs-overflowing", overflowing);
+  }
+
   function renderMainTabs() {
     mainTabsList.innerHTML = "";
     if (mainTabsActions) {
@@ -2546,6 +2556,12 @@
         await persistConfig();
       }
     });
+
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(updateMainTabsOverflowLayout);
+    } else {
+      updateMainTabsOverflowLayout();
+    }
   }
 
   function renderGroupButtons(dashboard, group, groupIndex, colorStart) {
@@ -4028,6 +4044,12 @@
       showLoginView();
       showMessage("Admin API unavailable. Check backend service.", "is-danger");
     }
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("resize", () => {
+      updateMainTabsOverflowLayout();
+    });
   }
 
   boot();
