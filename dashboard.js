@@ -126,7 +126,7 @@
     try {
       const status = await DashboardCommon.getAuthStatus();
       if (status && status.setupRequired) {
-        window.location.replace("admin.html?setup=1");
+        window.location.replace("/edit?setup=1");
         return true;
       }
     } catch (error) {
@@ -259,7 +259,7 @@
         if (!checked) {
           return;
         }
-        window.location.href = "admin.html";
+        window.location.href = "/edit";
       })
     );
     dashboardTabListEl.appendChild(navLi);

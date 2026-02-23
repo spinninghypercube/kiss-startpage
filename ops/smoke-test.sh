@@ -12,7 +12,7 @@ Usage: $0 [--base-url URL] [--username USER] [--password PASS]
 Performs a basic smoke test:
 - /health
 - /
-- /admin.html
+- /edit
 - login
 - auth status
 - /api/config
@@ -57,7 +57,7 @@ echo "[2/6] Dashboard page"
 curl -fsS "$BASE_URL/" >/dev/null
 
 echo "[3/6] Admin page"
-curl -fsS "$BASE_URL/admin.html" >/dev/null
+curl -fsS "$BASE_URL/edit" >/dev/null
 
 echo "[4/6] Login"
 AUTH_PAYLOAD="$(

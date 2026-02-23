@@ -594,6 +594,14 @@
     return wrapper;
   }
 
+  function updateThemeEditorToggleButtonLabel() {
+    if (!liveColorEditorToggleBtn || !liveColorEditorPanel) {
+      return;
+    }
+    const isHidden = liveColorEditorPanel.classList.contains("is-hidden");
+    liveColorEditorToggleBtn.textContent = isHidden ? "Show theme editor" : "Hide theme editor";
+  }
+
   function moveArrayItem(items, fromIndex, toIndex) {
     if (!Array.isArray(items)) {
       return false;
@@ -2372,7 +2380,7 @@
         if (checked) {
           return;
         }
-        window.location.href = "index.html";
+        window.location.href = "/";
       })
     );
     mainTabsList.appendChild(navLi);
@@ -3129,6 +3137,7 @@
   }
 
   if (liveColorEditorToggleBtn && liveColorEditorPanel) {
+    updateThemeEditorToggleButtonLabel();
     liveColorEditorToggleBtn.setAttribute(
       "aria-expanded",
       liveColorEditorPanel.classList.contains("is-hidden") ? "false" : "true"
@@ -3136,6 +3145,7 @@
     liveColorEditorToggleBtn.addEventListener("click", () => {
       const isHidden = liveColorEditorPanel.classList.toggle("is-hidden");
       liveColorEditorToggleBtn.setAttribute("aria-expanded", isHidden ? "false" : "true");
+      updateThemeEditorToggleButtonLabel();
     });
   }
 

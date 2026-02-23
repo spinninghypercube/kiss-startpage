@@ -36,7 +36,7 @@ Steps:
    - `docker compose up -d`
 4. Open:
    - Dashboard: `http://<host>:8080/`
-   - Admin: `http://<host>:8080/admin.html`
+   - Editor: `http://<host>:8080/edit`
 5. On first visit, create your admin username/password in the setup form.
 
 Notes:
@@ -59,7 +59,7 @@ Run from the cloned repo:
    - `sudo bash ops/install.sh`
 3. Open:
    - Dashboard: `http://127.0.0.1:8788/`
-   - Admin: `http://127.0.0.1:8788/admin.html`
+   - Editor: `http://127.0.0.1:8788/edit`
 
 What `ops/install.sh` does:
 - creates a system user (`kiss-this-dashboard` by default)
@@ -126,7 +126,7 @@ Example:
 ## Project Layout
 
 - `index.html` dashboard frontend
-- `admin.html` admin frontend
+- `edit.html` editor frontend
 - `dashboard-common.js` shared client logic + API calls
 - `dashboard.js` dashboard rendering
 - `admin.js` admin editor UI

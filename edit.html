@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KISS this dashboard Admin</title>
+  <title>KISS dashboard</title>
   <link rel="stylesheet" href="assets/css/bulma.min.css" />
   <style>
     :root {
@@ -185,6 +185,13 @@
     .textarea:focus {
       border-color: #60a5fa;
       box-shadow: 0 0 0 0.125em rgba(96, 165, 250, 0.2);
+    }
+
+    .button.is-small:not(.icon-action):not(.drag-handle) {
+      min-height: 2.5rem;
+      height: 2.5rem;
+      padding-top: 0;
+      padding-bottom: 0;
     }
 
     .tabs.is-boxed a {
@@ -1398,7 +1405,7 @@
               <div class="settings-head">
               <h2 class="title is-5">Tab Settings</h2>
               <div class="settings-actions">
-                <button id="liveColorEditorToggleBtn" class="button is-link is-light is-small" type="button">Theme Editor</button>
+                <button id="liveColorEditorToggleBtn" class="button is-link is-light is-small" type="button">Show theme editor</button>
                 <button id="deleteDashboardBtn" class="button is-danger is-light is-small delete-dashboard-btn" type="button">Delete this tab</button>
               </div>
             </div>
@@ -1898,7 +1905,7 @@
     </div>
   </div>
 
-  <script src="dashboard-common.js?v=1.3.13"></script>
-  <script src="admin.js?v=1.3.13"></script>
+  <script src="dashboard-common.js?v=1.3.14"></script>
+  <script src="admin.js?v=1.3.14"></script>
 </body>
 </html>

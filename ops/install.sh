@@ -148,5 +148,5 @@ else
 fi
 echo "App dir: ${CURRENT_DIR}"
 echo "Data dir: ${DATA_DIR}"
-echo "Open: http://${BIND_ADDR}:${PORT}/ and /admin.html"
-echo "First visit /admin.html: create the first admin account"
+echo "Open: http://${BIND_ADDR}:${PORT}/ and /edit"
+echo "First visit /edit: create the first admin account"

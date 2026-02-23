@@ -1038,6 +1038,13 @@ class DashboardAPIHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _send_redirect(self, location, status_code=302):
+        self.send_response(status_code)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
     def _read_json_body(self):
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -1071,8 +1078,23 @@ class DashboardAPIHandler(BaseHTTPRequestHandler):
 
     def _serve_static(self, request_path):
         raw_path = str(request_path or "/")
-        path = raw_path.split("?", 1)[0].split("#", 1)[0]
-        if not path or path == "/":
+        parsed = urlparse(raw_path)
+        path = parsed.path or "/"
+        query_suffix = f"?{parsed.query}" if parsed.query else ""
+
+        if path == "/index.html":
+            self._send_redirect(f"/{query_suffix}", 302)
+            return True
+        if path in {"/admin.html", "/admin", "/edit.html"}:
+            self._send_redirect(f"/edit{query_suffix}", 302)
+            return True
+        if path == "/edit/":
+            self._send_redirect(f"/edit{query_suffix}", 302)
+            return True
+
+        if path == "/edit":
+            relative = "edit.html"
+        elif not path or path == "/":
             relative = "index.html"
         else:
             relative = path.lstrip("/")
@@ -1209,7 +1231,7 @@ class DashboardAPIHandler(BaseHTTPRequestHandler):
             )
             return
 
-        if self._serve_static(path):
+        if self._serve_static(self.path):
             return
 
         self._send_json(404, {"message": "Not found."})
