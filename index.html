@@ -94,7 +94,8 @@
     .mode-tabs-actions {
       flex: 0 0 auto;
       display: flex;
-      align-items: center;
+      align-self: stretch;
+      align-items: flex-end;
       justify-content: flex-end;
       padding-left: 0.5rem;
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -415,6 +416,8 @@
 
       .mode-tabs-actions {
         flex: 0 0 auto;
+        align-self: stretch;
+        align-items: flex-end;
         justify-content: flex-end;
       }
 
@@ -428,6 +431,8 @@
 
       .mode-tabs-row.tabs-overflowing .mode-tabs-actions {
         flex: 1 0 100%;
+        align-self: auto;
+        align-items: center;
         justify-content: flex-end;
         padding-left: 0;
         border-bottom: none;

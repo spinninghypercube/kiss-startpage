@@ -242,7 +242,8 @@
     .mode-tabs-actions {
       flex: 0 0 auto;
       display: flex;
-      align-items: center;
+      align-self: stretch;
+      align-items: flex-end;
       justify-content: flex-end;
       padding-left: 0.5rem;
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -1348,15 +1349,15 @@
       }
 
       .theme-preset-toolbar {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        display: flex;
+        flex-direction: column;
         align-items: stretch;
         gap: 0.25rem;
+        margin: 0 !important;
       }
 
       .theme-preset-toolbar > * {
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
+        margin: 0 !important;
       }
 
       .theme-preset-toolbar .control.is-expanded {
@@ -1365,14 +1366,13 @@
 
       .theme-preset-toolbar .button {
         width: auto;
+        align-self: flex-start;
       }
 
       .theme-preset-save-row {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.25rem;
+        display: block;
         margin: 0 !important;
+        padding: 0 !important;
       }
 
       .theme-preset-save-row > * {
@@ -1380,20 +1380,25 @@
       }
 
       .theme-preset-save-row .input {
-        flex: 0 0 auto;
+        display: block;
         min-width: 0;
         width: 100%;
       }
 
       .theme-preset-save-row .button {
+        display: inline-flex;
         width: auto;
-        align-self: flex-start;
+        margin-top: 0.25rem !important;
         white-space: nowrap;
         line-height: 1.1;
       }
 
       .theme-preset-editor-card {
         gap: 0.35rem;
+      }
+
+      .theme-preset-editor-card .help {
+        margin-top: 0 !important;
       }
 
       .entry-modal-footer {
@@ -1450,6 +1455,8 @@
 
       .mode-tabs-actions {
         flex: 0 0 auto;
+        align-self: stretch;
+        align-items: flex-end;
         justify-content: flex-end;
       }
 
@@ -1463,8 +1470,11 @@
 
       .mode-tabs-row.tabs-overflowing .mode-tabs-actions {
         flex: 1 0 100%;
+        align-self: auto;
+        align-items: center;
         justify-content: flex-end;
         padding-left: 0;
+        padding-top: 4px;
         border-bottom: none;
       }
 
@@ -2062,6 +2072,6 @@
   </div>
 
   <script src="dashboard-common.js?v=1.3.20"></script>
-  <script src="admin.js?v=1.3.25"></script>
+  <script src="admin.js?v=1.3.26"></script>
 </body>
 </html>

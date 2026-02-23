@@ -3704,7 +3704,7 @@
       config.dashboards.push(dashboard);
       activeDashboardId = dashboard.id;
       closeActionModal();
-      await persistConfig("Dashboard added.");
+      await persistConfig("");
       return;
     }
 
@@ -3807,7 +3807,7 @@
       }
 
       closeActionModal();
-      await persistConfig("Dashboard deleted.");
+      await persistConfig("");
     }
   });
 
