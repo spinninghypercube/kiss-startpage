@@ -874,7 +874,7 @@
     state.sortProbeOffsetX = rect.width / 2 - state.pointerOffsetX;
     state.sortProbeOffsetY = rect.height / 2 - state.pointerOffsetY;
 
-    const placeholder = state.item.cloneNode(false);
+    const placeholder = state.item.cloneNode(true);
     placeholder.className = `${state.item.className} sortable-placeholder`.trim();
     placeholder.removeAttribute("id");
     placeholder.style.width = `${Math.ceil(rect.width)}px`;
@@ -2247,7 +2247,9 @@
     config = await DashboardCommon.saveConfig(config);
     ensureActiveDashboard();
     renderEditor();
-    showMessage(message, "is-success");
+    if (typeof message === "string" && message.trim()) {
+      showMessage(message, "is-success");
+    }
   }
 
   function renderMainTabs() {
@@ -2314,7 +2316,7 @@
         if (!moveArrayItem(config.dashboards, fromIndex, toIndex)) {
           return;
         }
-        await persistConfig("Tab order updated.");
+        await persistConfig();
       }
     });
   }
@@ -2427,7 +2429,7 @@
         if (!moveArrayItem(buttons, fromIndex, toIndex)) {
           return;
         }
-        await persistConfig("Button order updated.");
+        await persistConfig();
       }
     });
 
@@ -2542,7 +2544,7 @@
           if (!moveArrayItem(activeDashboard.groups, fromIndex, toIndex)) {
             return;
           }
-          await persistConfig("Group order updated.");
+          await persistConfig();
         }
       });
       return;
@@ -2637,7 +2639,7 @@
         if (!moveArrayItem(activeDashboard.groups, fromIndex, toIndex)) {
           return;
         }
-        await persistConfig("Group order updated.");
+        await persistConfig();
       }
     });
   }
