@@ -625,6 +625,21 @@
     liveColorEditorToggleBtn.textContent = isHidden ? "Show theme editor" : "Hide theme editor";
   }
 
+  function normalizeEditorUrlBarPath() {
+    if (!window.history || typeof window.history.replaceState !== "function") {
+      return;
+    }
+
+    const pathname = window.location.pathname || "";
+    if (pathname !== "/edit.html" && pathname !== "/admin.html") {
+      return;
+    }
+
+    const search = window.location.search || "";
+    const hash = window.location.hash || "";
+    window.history.replaceState(null, "", `/edit${search}${hash}`);
+  }
+
   function moveArrayItem(items, fromIndex, toIndex) {
     if (!Array.isArray(items)) {
       return false;
@@ -3949,6 +3964,7 @@
   }
 
   async function boot() {
+    normalizeEditorUrlBarPath();
     hideMessage();
     setPreviewMode(previewMode);
 

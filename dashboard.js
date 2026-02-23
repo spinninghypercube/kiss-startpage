@@ -72,6 +72,23 @@
     document.documentElement.style.setProperty("--dashboard-nav-tab-hover-text", navText);
   }
 
+  function redirectDashboardFallbackPaths() {
+    const pathname = window.location.pathname || "/";
+    const search = window.location.search || "";
+    const hash = window.location.hash || "";
+
+    if (pathname === "/edit" || pathname === "/edit/" || pathname === "/admin") {
+      window.location.replace(`/edit.html${search}${hash}`);
+      return true;
+    }
+
+    if (pathname === "/index.html" && window.history && typeof window.history.replaceState === "function") {
+      window.history.replaceState(null, "", `/${search}${hash}`);
+    }
+
+    return false;
+  }
+
   function createEditModeNavToggle(isChecked, onToggle) {
     const wrapper = document.createElement("div");
     wrapper.className = "mode-switch dashboard-link-mode nav-edit-mode-toggle";
@@ -282,7 +299,7 @@
         if (!checked) {
           return;
         }
-        window.location.href = "/edit";
+        window.location.href = "/edit.html";
       })
     );
     dashboardTabListEl.appendChild(navLi);
@@ -424,6 +441,9 @@
   });
 
   async function init() {
+    if (redirectDashboardFallbackPaths()) {
+      return;
+    }
     const redirected = await redirectToAdminSetupIfNeeded();
     if (redirected) {
       return;
