@@ -75,11 +75,11 @@
   function createEditModeNavToggle(isChecked, onToggle) {
     const wrapper = document.createElement("div");
     wrapper.className = "mode-switch dashboard-link-mode nav-edit-mode-toggle";
-    wrapper.setAttribute("aria-label", "Edit mode");
+    wrapper.setAttribute("aria-label", "Edit");
 
     const labelText = document.createElement("span");
     labelText.className = "mode-switch-label";
-    labelText.textContent = "Edit mode";
+    labelText.textContent = "Edit";
 
     const switchLabel = document.createElement("label");
     switchLabel.className = "ios-switch";
@@ -87,7 +87,7 @@
     const input = document.createElement("input");
     input.type = "checkbox";
     input.checked = Boolean(isChecked);
-    input.setAttribute("aria-label", "Toggle Edit mode");
+    input.setAttribute("aria-label", "Toggle Edit");
 
     const slider = document.createElement("span");
     slider.className = "ios-switch-slider";
