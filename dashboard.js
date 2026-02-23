@@ -72,6 +72,39 @@
     document.documentElement.style.setProperty("--dashboard-nav-tab-hover-text", navText);
   }
 
+  function createEditModeNavToggle(isChecked, onToggle) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "nav-edit-mode-toggle";
+    wrapper.setAttribute("aria-label", "Edit mode");
+
+    const labelText = document.createElement("span");
+    labelText.className = "mode-switch-label";
+    labelText.textContent = "Edit mode";
+
+    const switchLabel = document.createElement("label");
+    switchLabel.className = "ios-switch";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(isChecked);
+    input.setAttribute("aria-label", "Toggle Edit mode");
+
+    const slider = document.createElement("span");
+    slider.className = "ios-switch-slider";
+
+    input.addEventListener("change", (event) => {
+      if (typeof onToggle === "function") {
+        onToggle(Boolean(event.target && event.target.checked));
+      }
+    });
+
+    switchLabel.appendChild(input);
+    switchLabel.appendChild(slider);
+    wrapper.appendChild(labelText);
+    wrapper.appendChild(switchLabel);
+    return wrapper;
+  }
+
   function getIconSource(buttonEntry) {
     if (buttonEntry.iconData) {
       return buttonEntry.iconData;
@@ -221,10 +254,14 @@
 
     const navLi = document.createElement("li");
     navLi.className = "nav-action-tab";
-    const navLink = document.createElement("a");
-    navLink.href = "admin.html";
-    navLink.textContent = "Admin Panel";
-    navLi.appendChild(navLink);
+    navLi.appendChild(
+      createEditModeNavToggle(false, (checked) => {
+        if (!checked) {
+          return;
+        }
+        window.location.href = "admin.html";
+      })
+    );
     dashboardTabListEl.appendChild(navLi);
 
     if (dashboardTabsWrapEl) {

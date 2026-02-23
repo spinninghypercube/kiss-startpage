@@ -561,6 +561,39 @@
     return handle;
   }
 
+  function createEditModeNavToggle(isChecked, onToggle) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "nav-edit-mode-toggle";
+    wrapper.setAttribute("aria-label", "Edit mode");
+
+    const labelText = document.createElement("span");
+    labelText.className = "mode-switch-label";
+    labelText.textContent = "Edit mode";
+
+    const switchLabel = document.createElement("label");
+    switchLabel.className = "ios-switch";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(isChecked);
+    input.setAttribute("aria-label", "Toggle Edit mode");
+
+    const slider = document.createElement("span");
+    slider.className = "ios-switch-slider";
+
+    input.addEventListener("change", (event) => {
+      if (typeof onToggle === "function") {
+        onToggle(Boolean(event.target && event.target.checked));
+      }
+    });
+
+    switchLabel.appendChild(input);
+    switchLabel.appendChild(slider);
+    wrapper.appendChild(labelText);
+    wrapper.appendChild(switchLabel);
+    return wrapper;
+  }
+
   function moveArrayItem(items, fromIndex, toIndex) {
     if (!Array.isArray(items)) {
       return false;
@@ -897,8 +930,9 @@
     state.item.style.pointerEvents = "none";
     document.body.appendChild(state.item);
     document.body.classList.add("sorting-active");
+    state.lastRepositionX = event.clientX;
+    state.lastRepositionY = event.clientY;
     updatePointerSortFloatingPosition(state, event.clientX, event.clientY);
-    repositionPointerSortPlaceholder(state, event.clientX, event.clientY);
   }
 
   function bindPointerSortable(container, options) {
@@ -2300,10 +2334,14 @@
 
     const navLi = document.createElement("li");
     navLi.className = "nav-action-tab";
-    const navLink = document.createElement("a");
-    navLink.href = "index.html";
-    navLink.textContent = "Dashboard";
-    navLi.appendChild(navLink);
+    navLi.appendChild(
+      createEditModeNavToggle(true, (checked) => {
+        if (checked) {
+          return;
+        }
+        window.location.href = "index.html";
+      })
+    );
     mainTabsList.appendChild(navLi);
 
     bindPointerSortable(mainTabsList, {
