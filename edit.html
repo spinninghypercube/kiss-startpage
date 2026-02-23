@@ -243,7 +243,7 @@
       flex: 0 0 auto;
       display: flex;
       align-self: stretch;
-      align-items: flex-end;
+      align-items: center;
       justify-content: flex-end;
       padding-left: 0.5rem;
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -1350,8 +1350,8 @@
 
       .theme-preset-toolbar {
         display: flex;
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        align-items: center;
         gap: 0.25rem;
         margin: 0 !important;
       }
@@ -1361,7 +1361,19 @@
       }
 
       .theme-preset-toolbar .control.is-expanded {
+        flex: 0 1 auto;
         min-width: 0;
+      }
+
+      .theme-preset-toolbar .select.is-fullwidth {
+        width: auto;
+        max-width: 100%;
+      }
+
+      .theme-preset-toolbar .select.is-fullwidth select {
+        width: auto;
+        min-width: min(15rem, 100%);
+        max-width: 100%;
       }
 
       .theme-preset-toolbar .button {
@@ -1371,7 +1383,7 @@
 
       .theme-preset-save-row {
         display: block;
-        margin: 0 !important;
+        margin: 0.45rem 0 0 !important;
         padding: 0 !important;
       }
 
@@ -1388,7 +1400,7 @@
       .theme-preset-save-row .button {
         display: inline-flex;
         width: auto;
-        margin-top: 0.25rem !important;
+        margin-top: 0.45rem !important;
         white-space: nowrap;
         line-height: 1.1;
       }
@@ -1456,7 +1468,7 @@
       .mode-tabs-actions {
         flex: 0 0 auto;
         align-self: stretch;
-        align-items: flex-end;
+        align-items: center;
         justify-content: flex-end;
       }
 
@@ -1474,7 +1486,7 @@
         align-items: center;
         justify-content: flex-end;
         padding-left: 0;
-        padding-top: 4px;
+        padding-top: 8px;
         border-bottom: none;
       }
 
