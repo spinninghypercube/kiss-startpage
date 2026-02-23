@@ -242,7 +242,7 @@
     .mode-tabs-actions {
       flex: 0 0 auto;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: flex-end;
     }
 
@@ -334,6 +334,15 @@
       padding: 0;
       border: none;
       background: transparent;
+    }
+
+    .nav-edit-mode-toggle.mode-switch {
+      gap: 0.18rem;
+      padding: 0;
+    }
+
+    .nav-edit-mode-toggle .mode-switch-label {
+      line-height: 1;
     }
 
     .dashboard-link-mode .mode-switch-label {
@@ -1333,7 +1342,12 @@
       .theme-preset-toolbar {
         flex-direction: column;
         align-items: stretch;
-        gap: 0.35rem;
+        gap: 0.25rem;
+      }
+
+      .theme-preset-toolbar > .control,
+      .theme-preset-toolbar > p.control {
+        margin-bottom: 0 !important;
       }
 
       .theme-preset-toolbar .button {
@@ -1341,22 +1355,31 @@
       }
 
       .theme-preset-save-row {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: stretch;
         gap: 0.3rem;
+        margin-top: 0 !important;
       }
 
       .theme-preset-save-row .input {
         min-width: 0;
-        width: 100%;
+        width: auto;
       }
 
       .theme-preset-save-row .button {
         width: auto;
-        align-self: flex-start;
+        max-width: 9.5rem;
         margin: 0 !important;
-        white-space: nowrap;
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+        white-space: normal;
+        line-height: 1.1;
+        text-align: center;
+      }
+
+      .theme-preset-editor-card {
+        gap: 0.45rem;
       }
 
       .entry-modal-footer {
