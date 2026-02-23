@@ -546,13 +546,47 @@
     ];
   }
 
+  function normalizeGlobalThemePresets(config, dashboards) {
+    const hasRootThemePresets =
+      Boolean(config) && Object.prototype.hasOwnProperty.call(config, "themePresets");
+    const sourcePresets = hasRootThemePresets
+      ? Array.isArray(config.themePresets)
+        ? config.themePresets
+        : []
+      : dashboards.flatMap((dashboard) =>
+          Array.isArray(dashboard && dashboard.themePresets) ? dashboard.themePresets : []
+        );
+
+    const seenIds = new Set();
+    const seenNames = new Set();
+    const deduped = [];
+    sourcePresets.forEach((preset, index) => {
+      const normalized = normalizeThemePreset(preset, index + 1);
+      const normalizedId = (normalized.id || "").trim().toLowerCase();
+      const normalizedName = (normalized.name || "").trim().toLowerCase();
+      if ((normalizedId && seenIds.has(normalizedId)) || (normalizedName && seenNames.has(normalizedName))) {
+        return;
+      }
+      if (normalizedId) {
+        seenIds.add(normalizedId);
+      }
+      if (normalizedName) {
+        seenNames.add(normalizedName);
+      }
+      deduped.push(normalized);
+    });
+    return deduped;
+  }
+
   function normalizeConfig(inputConfig) {
     const config = inputConfig && typeof inputConfig === "object" ? inputConfig : {};
     const migrationTabs = normalizeMigrationTabs(config.tabs);
     const dashboards = normalizeDashboards(config, migrationTabs);
+    const themePresets = normalizeGlobalThemePresets(config, dashboards);
 
     return {
       title: normalizeTitle(config.title),
+      themePresets,
       dashboards
     };
   }

@@ -30,8 +30,8 @@
   const DEFAULT_BUTTON_COLOR_OPTIONS = DashboardCommon.getDefaultButtonColorOptions();
   const BUILT_IN_THEME_PRESETS = [
     {
-      id: "builtin-midnight-slate",
-      name: "Midnight Slate",
+      id: "builtin-default-theme",
+      name: "Default Theme",
       theme: {
         backgroundColor: "#0f172a",
         groupBackgroundColor: "#111827",
@@ -184,6 +184,7 @@
   const themePresetSelect = document.getElementById("themePresetSelect");
   const themePresetPreviewBtn = document.getElementById("themePresetPreviewBtn");
   const themePresetApplyBtn = document.getElementById("themePresetApplyBtn");
+  const themePresetDeleteControl = document.getElementById("themePresetDeleteControl");
   const themePresetDeleteBtn = document.getElementById("themePresetDeleteBtn");
   const themePresetNameInput = document.getElementById("themePresetNameInput");
   const themePresetSaveBtn = document.getElementById("themePresetSaveBtn");
@@ -674,6 +675,10 @@
 
     const { container, options, placeholder } = state;
     const itemSelector = options.itemSelector;
+    const probeX =
+      clientX + (typeof state.sortProbeOffsetX === "number" ? state.sortProbeOffsetX : 0);
+    const probeY =
+      clientY + (typeof state.sortProbeOffsetY === "number" ? state.sortProbeOffsetY : 0);
     const previousX = typeof state.lastRepositionX === "number" ? state.lastRepositionX : clientX;
     const previousY = typeof state.lastRepositionY === "number" ? state.lastRepositionY : clientY;
     const deltaX = clientX - previousX;
@@ -683,10 +688,10 @@
     const axis = options.axis || "vertical";
     const containerRect = container.getBoundingClientRect();
     const withinBounds =
-      clientX >= containerRect.left - 24 &&
-      clientX <= containerRect.right + 24 &&
-      clientY >= containerRect.top - 24 &&
-      clientY <= containerRect.bottom + 24;
+      probeX >= containerRect.left - 24 &&
+      probeX <= containerRect.right + 24 &&
+      probeY >= containerRect.top - 24 &&
+      probeY <= containerRect.bottom + 24;
 
     if (!withinBounds) {
       return;
@@ -701,7 +706,7 @@
 
     if (axis === "vertical") {
       const firstRect = firstItem.getBoundingClientRect();
-      if (clientY < firstRect.top + firstRect.height / 2) {
+      if (probeY < firstRect.top + firstRect.height / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
         }
@@ -711,7 +716,7 @@
 
     if (axis === "horizontal") {
       const firstRect = firstItem.getBoundingClientRect();
-      if (clientX < firstRect.left + firstRect.width / 2) {
+      if (probeX < firstRect.left + firstRect.width / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
         }
@@ -720,19 +725,19 @@
     }
 
     const endReference = getSortableEndReference(container, options);
-    if (axis !== "horizontal" && axis !== "vertical" && clientY > containerRect.bottom - 18) {
+    if (axis !== "horizontal" && axis !== "vertical" && probeY > containerRect.bottom - 18) {
       if (placeholder.nextElementSibling !== endReference) {
         container.insertBefore(placeholder, endReference);
       }
       return;
     }
 
-    if (axis === "vertical" && clientY > containerRect.bottom - 18) {
+    if (axis === "vertical" && probeY > containerRect.bottom - 18) {
       container.insertBefore(placeholder, endReference);
       return;
     }
 
-    if (axis === "horizontal" && clientX > containerRect.right - 18) {
+    if (axis === "horizontal" && probeX > containerRect.right - 18) {
       container.insertBefore(placeholder, endReference);
       return;
     }
@@ -756,7 +761,7 @@
         if (!nextItem) {
           return false;
         }
-        const cmp = comparePointerToSortableItem(axis, clientX, clientY, nextItem.getBoundingClientRect());
+        const cmp = comparePointerToSortableItem(axis, probeX, probeY, nextItem.getBoundingClientRect());
         if (cmp > 0) {
           container.insertBefore(placeholder, nextItem.nextElementSibling);
           return true;
@@ -768,7 +773,7 @@
         if (!prevItem) {
           return false;
         }
-        const cmp = comparePointerToSortableItem(axis, clientX, clientY, prevItem.getBoundingClientRect());
+        const cmp = comparePointerToSortableItem(axis, probeX, probeY, prevItem.getBoundingClientRect());
         if (cmp < 0) {
           container.insertBefore(placeholder, prevItem);
           return true;
@@ -866,6 +871,8 @@
     state.started = true;
     state.pointerOffsetX = event.clientX - rect.left;
     state.pointerOffsetY = event.clientY - rect.top;
+    state.sortProbeOffsetX = rect.width / 2 - state.pointerOffsetX;
+    state.sortProbeOffsetY = rect.height / 2 - state.pointerOffsetY;
 
     const placeholder = state.item.cloneNode(false);
     placeholder.className = `${state.item.className} sortable-placeholder`.trim();
@@ -1447,9 +1454,9 @@
     return normalized;
   }
 
-  function getNormalizedCustomThemePresets(dashboard) {
-    const source = Array.isArray(dashboard && dashboard.themePresets) ? dashboard.themePresets : [];
-    return source.map((preset, index) => {
+  function normalizeThemePresetList(source) {
+    const items = Array.isArray(source) ? source : [];
+    return items.map((preset, index) => {
       const presetId =
         preset && typeof preset.id === "string" && preset.id.trim()
           ? preset.id.trim()
@@ -1462,6 +1469,58 @@
         id: presetId,
         name: presetName,
         theme: normalizeThemePresetTheme(preset && preset.theme)
+      };
+    });
+  }
+
+  function getNormalizedSavedThemePresets() {
+    const hasRootPresetProperty =
+      Boolean(config) && Object.prototype.hasOwnProperty.call(config, "themePresets");
+    if (hasRootPresetProperty) {
+      return normalizeThemePresetList(config && config.themePresets);
+    }
+
+    const merged = [];
+    const seenIds = new Set();
+    const seenNames = new Set();
+    if (Array.isArray(config && config.dashboards)) {
+      config.dashboards.forEach((dashboard) => {
+        normalizeThemePresetList(dashboard && dashboard.themePresets).forEach((preset) => {
+          if (!preset) {
+            return;
+          }
+          const normalizedId = (preset.id || "").trim().toLowerCase();
+          const normalizedName = (preset.name || "").trim().toLowerCase();
+          if ((normalizedId && seenIds.has(normalizedId)) || (normalizedName && seenNames.has(normalizedName))) {
+            return;
+          }
+          if (normalizedId) {
+            seenIds.add(normalizedId);
+          }
+          if (normalizedName) {
+            seenNames.add(normalizedName);
+          }
+          merged.push(preset);
+        });
+      });
+    }
+    return merged;
+  }
+
+  function getResolvedBuiltInThemePresets() {
+    const savedDefault = getNormalizedSavedThemePresets().find(
+      (preset) => (preset.name || "").trim().toLowerCase() === "default theme"
+    );
+    return BUILT_IN_THEME_PRESETS.map((preset) => {
+      if (!savedDefault || preset.id !== "builtin-default-theme") {
+        return {
+          ...preset,
+          theme: normalizeThemePresetTheme(preset.theme)
+        };
+      }
+      return {
+        ...preset,
+        theme: normalizeThemePresetTheme(savedDefault.theme)
       };
     });
   }
@@ -1480,6 +1539,9 @@
       themePresetDeleteBtn.disabled = !hasSavedSelection;
       themePresetDeleteBtn.title = hasSavedSelection ? "Delete selected saved theme preset" : "Select a saved preset to delete";
     }
+    if (themePresetDeleteControl) {
+      themePresetDeleteControl.classList.toggle("is-hidden", !hasSavedSelection);
+    }
   }
 
   function renderThemePresetOptions() {
@@ -1487,10 +1549,10 @@
       return;
     }
 
-    const dashboard = getActiveDashboard();
     const preferredValue =
       (themePresetSelect.dataset && themePresetSelect.dataset.lastValue) || themePresetSelect.value || "";
-    const customPresets = getNormalizedCustomThemePresets(dashboard);
+    const builtInPresets = getResolvedBuiltInThemePresets();
+    const customPresets = getNormalizedSavedThemePresets();
     const validValues = new Set();
 
     themePresetSelect.innerHTML = "";
@@ -1503,7 +1565,7 @@
 
     const builtInGroup = document.createElement("optgroup");
     builtInGroup.label = "Built-in";
-    BUILT_IN_THEME_PRESETS.forEach((preset) => {
+    builtInPresets.forEach((preset) => {
       const option = document.createElement("option");
       option.value = `builtin:${preset.id}`;
       option.textContent = preset.name;
@@ -1553,13 +1615,12 @@
     }
 
     if (scope === "builtin") {
-      const preset = BUILT_IN_THEME_PRESETS.find((item) => item.id === presetId);
+      const preset = getResolvedBuiltInThemePresets().find((item) => item.id === presetId);
       return preset ? { scope, ...preset, theme: normalizeThemePresetTheme(preset.theme) } : null;
     }
 
     if (scope === "saved") {
-      const dashboard = getActiveDashboard();
-      const preset = getNormalizedCustomThemePresets(dashboard).find((item) => item.id === presetId);
+      const preset = getNormalizedSavedThemePresets().find((item) => item.id === presetId);
       return preset ? { scope, ...preset } : null;
     }
 
@@ -1595,11 +1656,6 @@
 
   async function saveCurrentThemePreset() {
     hideMessage();
-    const dashboard = getActiveDashboard();
-    if (!dashboard) {
-      showMessage("Dashboard not found.", "is-danger");
-      return;
-    }
     const presetName = (themePresetNameInput && themePresetNameInput.value ? themePresetNameInput.value : "").trim();
     if (!presetName) {
       showMessage("Preset name is required.", "is-danger");
@@ -1607,7 +1663,7 @@
     }
 
     const theme = readThemePresetThemeFromControls();
-    const existingPresets = Array.isArray(dashboard.themePresets) ? dashboard.themePresets : [];
+    const existingPresets = getNormalizedSavedThemePresets();
     const existingIndex = existingPresets.findIndex((preset) => {
       const name = preset && typeof preset.name === "string" ? preset.name.trim().toLowerCase() : "";
       return name === presetName.toLowerCase();
@@ -1627,11 +1683,11 @@
       theme
     };
 
-    dashboard.themePresets = existingPresets.slice();
+    config.themePresets = existingPresets.slice();
     if (existingIndex >= 0) {
-      dashboard.themePresets.splice(existingIndex, 1, nextPreset);
+      config.themePresets.splice(existingIndex, 1, nextPreset);
     } else {
-      dashboard.themePresets.push(nextPreset);
+      config.themePresets.push(nextPreset);
     }
 
     if (themePresetSelect && themePresetSelect.dataset) {
@@ -1649,13 +1705,7 @@
       return;
     }
 
-    const dashboard = getActiveDashboard();
-    if (!dashboard) {
-      showMessage("Dashboard not found.", "is-danger");
-      return;
-    }
-
-    const existingPresets = Array.isArray(dashboard.themePresets) ? dashboard.themePresets : [];
+    const existingPresets = getNormalizedSavedThemePresets();
     const nextPresets = existingPresets.filter((item) => {
       const id = item && typeof item.id === "string" ? item.id.trim() : "";
       return id !== preset.id;
@@ -1666,7 +1716,7 @@
       return;
     }
 
-    dashboard.themePresets = nextPresets;
+    config.themePresets = nextPresets;
     if (themePresetSelect && themePresetSelect.dataset) {
       themePresetSelect.dataset.lastValue = "";
     }

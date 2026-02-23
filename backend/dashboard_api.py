@@ -841,15 +841,44 @@ def normalize_dashboards(config, legacy_tabs):
     return [fallback_dashboard]
 
 
+def normalize_global_theme_presets(config, dashboards):
+    has_root_theme_presets = isinstance(config, dict) and ("themePresets" in config)
+    if has_root_theme_presets:
+        source_presets = config.get("themePresets") if isinstance(config.get("themePresets"), list) else []
+    else:
+        source_presets = []
+        for dashboard in dashboards:
+            if isinstance(dashboard, dict) and isinstance(dashboard.get("themePresets"), list):
+                source_presets.extend(dashboard.get("themePresets"))
+
+    seen_ids = set()
+    seen_names = set()
+    deduped = []
+    for index, preset in enumerate(source_presets, start=1):
+        normalized = normalize_theme_preset(preset, index)
+        normalized_id = str(normalized.get("id") or "").strip().lower()
+        normalized_name = str(normalized.get("name") or "").strip().lower()
+        if (normalized_id and normalized_id in seen_ids) or (normalized_name and normalized_name in seen_names):
+            continue
+        if normalized_id:
+            seen_ids.add(normalized_id)
+        if normalized_name:
+            seen_names.add(normalized_name)
+        deduped.append(normalized)
+    return deduped
+
+
 def normalize_config(config):
     if not isinstance(config, dict):
         config = {}
 
     legacy_tabs = normalize_legacy_tabs(config.get("tabs"))
     dashboards = normalize_dashboards(config, legacy_tabs)
+    theme_presets = normalize_global_theme_presets(config, dashboards)
 
     return {
         "title": normalize_title(config.get("title")),
+        "themePresets": theme_presets,
         "dashboards": dashboards,
     }
 

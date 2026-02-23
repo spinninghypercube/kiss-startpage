@@ -1361,7 +1361,7 @@
             </div>
             <div id="liveColorEditorPanel" class="live-color-editor-panel is-hidden">
               <div class="live-color-editor-head">
-                <h3 class="title is-6">Theme Editor</h3>
+                <h3 class="title is-5">Theme Editor</h3>
                 <button id="resetThemeColorsBtn" class="button is-link is-light is-small" type="button">Reset Colors</button>
               </div>
               <div class="columns is-multiline">
@@ -1377,10 +1377,7 @@
                           </select>
                         </span>
                       </p>
-                      <p class="control">
-                        <button id="themePresetApplyBtn" class="button is-link is-light" type="button">Load</button>
-                      </p>
-                      <p class="control">
+                      <p id="themePresetDeleteControl" class="control is-hidden">
                         <button id="themePresetDeleteBtn" class="button is-danger is-light" type="button">Delete</button>
                       </p>
                     </div>
@@ -1395,7 +1392,7 @@
                       <button id="themePresetSaveBtn" class="button is-link" type="button">Save Current Theme</button>
                     </div>
                     <p class="help mb-0">
-                      Built-in presets are available for every tab. Saved presets are stored with this tab and can be reloaded later.
+                      Built-in presets are available for every tab. Saved themes are available across all tabs.
                     </p>
                   </div>
                 </div>
@@ -1846,7 +1843,7 @@
     </div>
   </div>
 
-  <script src="dashboard-common.js?v=1.3.4"></script>
-  <script src="admin.js?v=1.3.4"></script>
+  <script src="dashboard-common.js?v=1.3.6"></script>
+  <script src="admin.js?v=1.3.6"></script>
 </body>
 </html>
