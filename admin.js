@@ -594,7 +594,7 @@
 
   function createButtonSortPlaceholder(itemEl, rect) {
     const slot = document.createElement("div");
-    slot.className = `${itemEl && itemEl.className ? itemEl.className : "column"} sortable-placeholder sortable-placeholder-grid-slot`;
+    slot.className = `${itemEl && itemEl.className ? itemEl.className : "column"} sortable-placeholder sortable-placeholder-grid-line`;
     slot.style.minHeight = `${Math.ceil(rect.height)}px`;
     slot.style.height = `${Math.ceil(rect.height)}px`;
     slot.style.margin = "0";
