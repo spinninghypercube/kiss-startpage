@@ -567,6 +567,32 @@
     return handle;
   }
 
+  function createGroupSortPlaceholder(itemEl, rect) {
+    const line = document.createElement("div");
+    line.className = "sortable-placeholder sortable-placeholder-line";
+    line.style.width = `${Math.ceil(rect.width)}px`;
+    line.style.height = "12px";
+    line.style.margin = "0";
+    line.setAttribute("aria-hidden", "true");
+    return line;
+  }
+
+  function configureGroupSortFloatingPreview(state) {
+    if (!state || !state.item) {
+      return;
+    }
+    const headerEl = state.item.querySelector(".group-head");
+    if (!headerEl) {
+      return;
+    }
+    const headerOffsetTop = Number(headerEl.offsetTop) || 0;
+    const headerHeight = Number(headerEl.offsetHeight) || 0;
+    const previewHeight = Math.max(44, Math.ceil(headerOffsetTop + headerHeight));
+    state.item.classList.add("sortable-group-floating-preview");
+    state.item.style.height = `${previewHeight}px`;
+    state.item.style.overflow = "hidden";
+  }
+
   function createEditModeNavToggle(isChecked, onToggle) {
     return DashboardUI.createEditModeToggle(isChecked, onToggle);
   }
@@ -681,6 +707,133 @@
     return null;
   }
 
+  function getPointerSortComparisonRect(itemEl, state) {
+    if (!itemEl) {
+      return null;
+    }
+
+    const options = state && state.options ? state.options : null;
+    if (options && typeof options.getSortRect === "function") {
+      const customRect = options.getSortRect(itemEl, state);
+      if (customRect && Number.isFinite(customRect.width) && Number.isFinite(customRect.height)) {
+        return customRect;
+      }
+    }
+
+    if (options && options.sortRectSelector && typeof itemEl.querySelector === "function") {
+      const target = itemEl.querySelector(String(options.sortRectSelector));
+      if (target && typeof target.getBoundingClientRect === "function") {
+        return target.getBoundingClientRect();
+      }
+    }
+
+    return typeof itemEl.getBoundingClientRect === "function" ? itemEl.getBoundingClientRect() : null;
+  }
+
+  function stopPointerSortAutoScroll(state) {
+    if (!state) {
+      return;
+    }
+    state.autoScrollVx = 0;
+    state.autoScrollVy = 0;
+    if (state.autoScrollRaf && typeof window !== "undefined" && typeof window.cancelAnimationFrame === "function") {
+      window.cancelAnimationFrame(state.autoScrollRaf);
+    }
+    state.autoScrollRaf = 0;
+  }
+
+  function stepPointerSortAutoScroll(state) {
+    if (!state || !state.started) {
+      stopPointerSortAutoScroll(state);
+      return;
+    }
+
+    const vx = Number(state.autoScrollVx) || 0;
+    const vy = Number(state.autoScrollVy) || 0;
+    if (!vx && !vy) {
+      state.autoScrollRaf = 0;
+      return;
+    }
+
+    let scrolled = false;
+    if (typeof window !== "undefined") {
+      if (vx) {
+        const beforeX = window.scrollX || window.pageXOffset || 0;
+        window.scrollBy(vx, 0);
+        const afterX = window.scrollX || window.pageXOffset || 0;
+        scrolled = scrolled || beforeX !== afterX;
+      }
+      if (vy) {
+        const beforeY = window.scrollY || window.pageYOffset || 0;
+        window.scrollBy(0, vy);
+        const afterY = window.scrollY || window.pageYOffset || 0;
+        scrolled = scrolled || beforeY !== afterY;
+      }
+    }
+
+    if (scrolled && Number.isFinite(state.lastPointerClientX) && Number.isFinite(state.lastPointerClientY)) {
+      repositionPointerSortPlaceholder(state, state.lastPointerClientX, state.lastPointerClientY);
+    }
+
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      state.autoScrollRaf = window.requestAnimationFrame(() => {
+        stepPointerSortAutoScroll(state);
+      });
+    } else {
+      state.autoScrollRaf = 0;
+    }
+  }
+
+  function updatePointerSortAutoScroll(state, clientX, clientY) {
+    if (!state || !state.options || !state.options.autoScroll || typeof window === "undefined") {
+      return;
+    }
+
+    state.lastPointerClientX = clientX;
+    state.lastPointerClientY = clientY;
+
+    const edge = Math.max(24, Number(state.options.autoScrollEdge) || 72);
+    const maxSpeed = Math.max(4, Number(state.options.autoScrollMaxSpeed) || 18);
+    const axisMode = state.options.autoScrollAxis || "y";
+    const allowX = axisMode === "x" || axisMode === "both";
+    const allowY = axisMode === "y" || axisMode === "both";
+    const viewportWidth = Math.max(0, window.innerWidth || document.documentElement.clientWidth || 0);
+    const viewportHeight = Math.max(0, window.innerHeight || document.documentElement.clientHeight || 0);
+
+    let vx = 0;
+    let vy = 0;
+
+    if (allowY && viewportHeight > 0) {
+      if (clientY < edge) {
+        vy = -Math.ceil(((edge - clientY) / edge) * maxSpeed);
+      } else if (clientY > viewportHeight - edge) {
+        vy = Math.ceil(((clientY - (viewportHeight - edge)) / edge) * maxSpeed);
+      }
+    }
+
+    if (allowX && viewportWidth > 0) {
+      if (clientX < edge) {
+        vx = -Math.ceil(((edge - clientX) / edge) * maxSpeed);
+      } else if (clientX > viewportWidth - edge) {
+        vx = Math.ceil(((clientX - (viewportWidth - edge)) / edge) * maxSpeed);
+      }
+    }
+
+    state.autoScrollVx = vx;
+    state.autoScrollVy = vy;
+
+    if (!vx && !vy) {
+      stopPointerSortAutoScroll(state);
+      return;
+    }
+
+    if (!state.autoScrollRaf && typeof window.requestAnimationFrame === "function") {
+      state.autoScrollRaf = window.requestAnimationFrame(() => {
+        stepPointerSortAutoScroll(state);
+      });
+    }
+  }
+
   function updatePointerSortFloatingPosition(state, clientX, clientY) {
     if (!state || !state.started || !state.item) {
       return;
@@ -706,6 +859,9 @@
   }
 
   function comparePointerToSortableItem(axis, clientX, clientY, rect) {
+    if (!rect) {
+      return 0;
+    }
     const xCenter = rect.left + rect.width / 2;
     const yCenter = rect.top + rect.height / 2;
     const xDead = Math.max(8, Math.min(20, rect.width * 0.16));
@@ -797,7 +953,10 @@
     }
 
     if (axis === "vertical") {
-      const firstRect = firstItem.getBoundingClientRect();
+      const firstRect = getPointerSortComparisonRect(firstItem, state);
+      if (!firstRect) {
+        return;
+      }
       if (probeY < firstRect.top + firstRect.height / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
@@ -807,7 +966,10 @@
     }
 
     if (axis === "horizontal") {
-      const firstRect = firstItem.getBoundingClientRect();
+      const firstRect = getPointerSortComparisonRect(firstItem, state);
+      if (!firstRect) {
+        return;
+      }
       if (probeX < firstRect.left + firstRect.width / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
@@ -853,7 +1015,7 @@
         if (!nextItem) {
           return false;
         }
-        const cmp = comparePointerToSortableItem(axis, probeX, probeY, nextItem.getBoundingClientRect());
+        const cmp = comparePointerToSortableItem(axis, probeX, probeY, getPointerSortComparisonRect(nextItem, state));
         if (cmp > 0) {
           container.insertBefore(placeholder, nextItem.nextElementSibling);
           return true;
@@ -865,7 +1027,7 @@
         if (!prevItem) {
           return false;
         }
-        const cmp = comparePointerToSortableItem(axis, probeX, probeY, prevItem.getBoundingClientRect());
+        const cmp = comparePointerToSortableItem(axis, probeX, probeY, getPointerSortComparisonRect(prevItem, state));
         if (cmp < 0) {
           container.insertBefore(placeholder, prevItem);
           return true;
@@ -893,6 +1055,7 @@
     window.removeEventListener("pointermove", state.onPointerMove, true);
     window.removeEventListener("pointerup", state.onPointerUp, true);
     window.removeEventListener("pointercancel", state.onPointerCancel, true);
+    stopPointerSortAutoScroll(state);
 
     if (state.handle && typeof state.handle.releasePointerCapture === "function") {
       try {
@@ -909,6 +1072,7 @@
     }
 
     if (state.item) {
+      state.item.classList.remove("sortable-group-floating-preview");
       state.item.classList.remove("sortable-floating");
       if (state.originalStyleAttr === null) {
         state.item.removeAttribute("style");
@@ -986,20 +1150,32 @@
     state.started = true;
     state.pointerOffsetX = event.clientX - rect.left;
     state.pointerOffsetY = event.clientY - rect.top;
-    state.sortProbeOffsetX = rect.width / 2 - state.pointerOffsetX;
-    state.sortProbeOffsetY = rect.height / 2 - state.pointerOffsetY;
+    const probeRect = getPointerSortComparisonRect(state.item, state) || rect;
+    state.sortProbeOffsetX = probeRect.left + probeRect.width / 2 - event.clientX;
+    state.sortProbeOffsetY = probeRect.top + probeRect.height / 2 - event.clientY;
 
-    const placeholder = state.item.cloneNode(true);
-    placeholder.className = `${state.item.className} sortable-placeholder`.trim();
-    placeholder.removeAttribute("id");
-    if ((state.options && state.options.axis) !== "grid") {
-      placeholder.style.width = `${Math.ceil(rect.width)}px`;
-      placeholder.style.height = `${Math.ceil(rect.height)}px`;
-      placeholder.style.margin = "0";
-    } else {
-      placeholder.style.minHeight = `${Math.ceil(rect.height)}px`;
+    let placeholder = null;
+    if (state.options && typeof state.options.createPlaceholder === "function") {
+      placeholder = state.options.createPlaceholder(state.item, rect, state) || null;
     }
-    placeholder.setAttribute("aria-hidden", "true");
+    if (!placeholder) {
+      placeholder = state.item.cloneNode(true);
+      placeholder.className = `${state.item.className} sortable-placeholder`.trim();
+      placeholder.removeAttribute("id");
+      if ((state.options && state.options.axis) !== "grid") {
+        placeholder.style.width = `${Math.ceil(rect.width)}px`;
+        placeholder.style.height = `${Math.ceil(rect.height)}px`;
+        placeholder.style.margin = "0";
+      } else {
+        placeholder.style.minHeight = `${Math.ceil(rect.height)}px`;
+      }
+      placeholder.setAttribute("aria-hidden", "true");
+    } else {
+      if (!placeholder.classList.contains("sortable-placeholder")) {
+        placeholder.classList.add("sortable-placeholder");
+      }
+      placeholder.setAttribute("aria-hidden", "true");
+    }
 
     state.placeholder = placeholder;
     state.originalStyleAttr = state.item.getAttribute("style");
@@ -1017,9 +1193,18 @@
     state.item.style.pointerEvents = "none";
     document.body.appendChild(state.item);
     document.body.classList.add("sorting-active");
+    if (state.options && typeof state.options.configureFloatingPreview === "function") {
+      try {
+        state.options.configureFloatingPreview(state, rect, probeRect);
+      } catch (error) {
+        console.warn("Failed to configure drag preview", error);
+      }
+    }
     state.skipNextPlaceholderReposition = true;
     state.lastRepositionX = event.clientX;
     state.lastRepositionY = event.clientY;
+    state.lastPointerClientX = event.clientX;
+    state.lastPointerClientY = event.clientY;
     updatePointerSortFloatingPosition(state, event.clientX, event.clientY);
   }
 
@@ -1090,6 +1275,11 @@
           originalStyleAttr: null,
           pointerOffsetX: 0,
           pointerOffsetY: 0,
+          autoScrollRaf: 0,
+          autoScrollVx: 0,
+          autoScrollVy: 0,
+          lastPointerClientX: event.clientX,
+          lastPointerClientY: event.clientY,
           onPointerMove: null,
           onPointerUp: null,
           onPointerCancel: null
@@ -1108,6 +1298,9 @@
             startPointerSort(state, moveEvent);
           }
           moveEvent.preventDefault();
+          state.lastPointerClientX = moveEvent.clientX;
+          state.lastPointerClientY = moveEvent.clientY;
+          updatePointerSortAutoScroll(state, moveEvent.clientX, moveEvent.clientY);
           updatePointerSortFloatingPosition(state, moveEvent.clientX, moveEvent.clientY);
           if (state.skipNextPlaceholderReposition) {
             state.skipNextPlaceholderReposition = false;
@@ -1144,6 +1337,7 @@
             return;
           }
           upEvent.preventDefault();
+          stopPointerSortAutoScroll(state);
           finishPointerSort(state, upEvent.clientX, upEvent.clientY);
         };
 
@@ -1152,6 +1346,7 @@
             return;
           }
           cancelEvent.preventDefault();
+          stopPointerSortAutoScroll(state);
           if (state.started && state.placeholder) {
             const restoreContainer = state.originContainer || state.container;
             if (state.placeholder.parentNode !== restoreContainer) {
@@ -2717,6 +2912,13 @@
         itemSelector: "[data-group-sort-item]",
         handleSelector: ".group-drag-handle",
         axis: "vertical",
+        sortRectSelector: ".group-head",
+        createPlaceholder: createGroupSortPlaceholder,
+        configureFloatingPreview: configureGroupSortFloatingPreview,
+        autoScroll: true,
+        autoScrollAxis: "y",
+        autoScrollEdge: 84,
+        autoScrollMaxSpeed: 22,
         errorMessage: "Failed to reorder groups.",
         onReorder: async (fromIndex, toIndex) => {
           const activeDashboard = getActiveDashboard();
@@ -2810,6 +3012,13 @@
       itemSelector: "[data-group-sort-item]",
       handleSelector: ".group-drag-handle",
       axis: "vertical",
+      sortRectSelector: ".group-head",
+      createPlaceholder: createGroupSortPlaceholder,
+      configureFloatingPreview: configureGroupSortFloatingPreview,
+      autoScroll: true,
+      autoScrollAxis: "y",
+      autoScrollEdge: 84,
+      autoScrollMaxSpeed: 22,
       errorMessage: "Failed to reorder groups.",
       onReorder: async (fromIndex, toIndex) => {
         const activeDashboard = getActiveDashboard();

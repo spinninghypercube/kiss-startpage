@@ -612,12 +612,41 @@
       pointer-events: none !important;
     }
 
+    .sortable-placeholder.sortable-placeholder-line {
+      position: relative;
+      min-height: 0;
+      height: 12px !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      border-radius: 999px;
+      margin: 0 !important;
+    }
+
+    .sortable-placeholder.sortable-placeholder-line::before {
+      content: "";
+      position: absolute;
+      left: 0.55rem;
+      right: 0.55rem;
+      top: 50%;
+      height: 4px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: rgba(96, 165, 250, 0.95);
+      box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.22), 0 0 0 4px rgba(59, 130, 246, 0.12);
+    }
+
     .sortable-floating {
       pointer-events: none !important;
       z-index: 9999 !important;
       opacity: 0.94;
       transform-origin: top left;
       box-shadow: 0 12px 28px rgba(2, 6, 23, 0.35);
+    }
+
+    .sortable-group-floating-preview {
+      opacity: 0.98 !important;
+      box-shadow: 0 14px 30px rgba(2, 6, 23, 0.34) !important;
     }
 
     body.sorting-active {
@@ -2130,6 +2159,6 @@
 
   <script src="dashboard-common.js?v=2.0.0"></script>
   <script src="dashboard-ui.js?v=2.0.0"></script>
-  <script src="admin.js?v=2.0.0"></script>
+  <script src="admin.js?v=2.0.1"></script>
 </body>
 </html>
