@@ -74,7 +74,7 @@
 
   function createEditModeNavToggle(isChecked, onToggle) {
     const wrapper = document.createElement("div");
-    wrapper.className = "nav-edit-mode-toggle";
+    wrapper.className = "mode-switch dashboard-link-mode nav-edit-mode-toggle";
     wrapper.setAttribute("aria-label", "Edit mode");
 
     const labelText = document.createElement("span");

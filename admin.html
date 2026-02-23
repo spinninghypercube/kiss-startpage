@@ -287,28 +287,36 @@
     }
 
     .mode-tabs .nav-action-tab .nav-edit-mode-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
       margin-top: 0.18rem;
-      padding: 0.32rem 0.55rem;
-      border-radius: 9999px;
-      background: var(--dashboard-nav-tab-bg);
-      color: var(--dashboard-nav-tab-text);
-      border: 1px solid transparent;
-      box-sizing: border-box;
     }
 
-    .mode-tabs .nav-action-tab .nav-edit-mode-toggle .mode-switch-label {
-      color: inherit;
+    .dashboard-link-mode {
+      gap: 0.35rem;
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .dashboard-link-mode .mode-switch-label {
       font-size: 0.78rem;
-      font-weight: 700;
+      color: var(--dashboard-text-color, #e2e8f0);
       letter-spacing: 0;
     }
 
-    .mode-tabs .nav-action-tab .nav-edit-mode-toggle:hover {
-      background: var(--dashboard-nav-tab-hover-bg);
-      color: var(--dashboard-nav-tab-hover-text);
+    .dashboard-link-mode .ios-switch {
+      width: 2.35rem;
+      height: 1.35rem;
+    }
+
+    .dashboard-link-mode .ios-switch-slider::before {
+      width: 0.95rem;
+      height: 0.95rem;
+      left: 0.2rem;
+      top: 0.2rem;
+    }
+
+    .dashboard-link-mode .ios-switch input:checked + .ios-switch-slider::before {
+      transform: translateX(1rem);
     }
 
     .tab-manager {
@@ -1869,7 +1877,7 @@
     </div>
   </div>
 
-  <script src="dashboard-common.js?v=1.3.10"></script>
-  <script src="admin.js?v=1.3.10"></script>
+  <script src="dashboard-common.js?v=1.3.11"></script>
+  <script src="admin.js?v=1.3.11"></script>
 </body>
 </html>
