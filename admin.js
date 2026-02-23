@@ -2316,7 +2316,7 @@
 
     entryModalTitle.textContent = buttonModalState.isNew ? "Add Button" : `Edit Button: ${buttonEntry.name}`;
     if (entrySaveBtn) {
-      entrySaveBtn.textContent = buttonModalState.isNew ? "Add Button" : "Save Button";
+      entrySaveBtn.textContent = buttonModalState.isNew ? "Add Button" : "Save";
     }
     entryNameInput.value = buttonEntry.name || "";
     entryIconInput.value = buttonEntry.icon || "";
@@ -3739,6 +3739,7 @@
       }
 
       group.entries.splice(buttonIndex, 1);
+      closeButtonModal();
       closeActionModal();
       await persistConfig("Button deleted.");
       return;
@@ -3793,7 +3794,6 @@
       return;
     }
 
-    closeButtonModal();
     openDeleteButtonModal(dashboard, group, buttonEntry);
   });
 
