@@ -3160,7 +3160,7 @@
     buttonModalState.modalIconData = buttonEntry.iconData || "";
     renderEntryIconPreview();
     refreshEntryIconFilenameFieldVisibility();
-    await persistConfig(isNew ? "Button added." : "Button updated.");
+    await persistConfig("");
     entryModalTitle.textContent = `Edit Button: ${buttonEntry.name}`;
     return "saved";
   }
@@ -3531,7 +3531,7 @@
     const wasNewBeforeSave = buttonModalState.isNew;
     autoSaveButtonFromModal(true)
       .then((result) => {
-        if (result === "saved" && wasNewBeforeSave) {
+        if (result === "saved") {
           closeButtonModal();
           return;
         }
