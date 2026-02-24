@@ -13,9 +13,10 @@ KISS this dashboard is a self-hosted homepage/dashboard for homelabs and persona
 - Self-hosted auth and local persistence (no external account required).
 - Flexible deploy options: Docker Compose or plain systemd on Debian/Ubuntu.
 
-<img width="430" height="840" alt="image" src="https://github.com/user-attachments/assets/144a5598-0fa5-42d4-b4e5-657938dbbc2c" />
 
 <img width="430" height="840" alt="image" src="https://github.com/user-attachments/assets/ffaca904-8216-482e-828c-2874761dbcfd" />
+
+<img width="430" height="840" alt="image" src="https://github.com/user-attachments/assets/144a5598-0fa5-42d4-b4e5-657938dbbc2c" />
 
 <img width="1717" height="1320" alt="image" src="https://github.com/user-attachments/assets/dd011d34-da21-4252-8f83-6427fd951e8f" />
 
