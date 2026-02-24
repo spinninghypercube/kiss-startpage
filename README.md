@@ -2,11 +2,11 @@
 
 KISS this dashboard is a self-hosted homepage/dashboard for homelabs and personal start pages, with a built-in web editor so you can design the layout directly in the browser.
 
-## Why This One (USPs)
+## USP's
 
 - Keep it stupid simple: no heavy stack, no cloud dependency, no over-engineered setup.
-- WYSIWYG layout and theming: edit the actual dashboard UI instead of filling in config files blind.
-- Mobile friendly: dashboard and editor both work well on phones/tablets.
+- WYSIWYG layout and theming
+- Mobile friendly
 - Drag-and-drop editing: reorder tabs, groups, and buttons visually.
 - Per-tab theming + reusable theme presets.
 - Multiple icon library integrations plus embedded/custom icon support.
