@@ -605,6 +605,7 @@
     slot.style.setProperty("--button-drop-slot-height", `${Math.ceil(rect.height)}px`);
     slot.style.setProperty("--button-drop-line-top", `${lineTop}px`);
     slot.style.setProperty("--button-drop-line-height", `${lineHeight}px`);
+    slot.setAttribute("data-marker-side", "left");
     slot.setAttribute("aria-hidden", "true");
     return slot;
   }
@@ -792,6 +793,15 @@
     }
 
     return typeof itemEl.getBoundingClientRect === "function" ? itemEl.getBoundingClientRect() : null;
+  }
+
+  function setPointerSortPlaceholderMarkerSide(state, side) {
+    const placeholder = state && state.placeholder;
+    if (!placeholder || !placeholder.classList || !placeholder.classList.contains("sortable-placeholder-grid-line")) {
+      return;
+    }
+    const normalized = side === "right" ? "right" : "left";
+    placeholder.setAttribute("data-marker-side", normalized);
   }
 
   function resolvePointerSortAutoScrollContainer(state) {
@@ -1028,6 +1038,7 @@
       if (placeholder.parentNode !== container) {
         const targetEndReference = getSortableEndReference(container, options);
         container.insertBefore(placeholder, targetEndReference);
+        setPointerSortPlaceholderMarkerSide(state, "left");
       }
     }
     const previousX = typeof state.lastRepositionX === "number" ? state.lastRepositionX : clientX;
@@ -1055,6 +1066,7 @@
       const emptyEndReference = getSortableEndReference(container, options);
       if (placeholder.nextElementSibling !== emptyEndReference) {
         container.insertBefore(placeholder, emptyEndReference);
+        setPointerSortPlaceholderMarkerSide(state, "left");
       }
       return;
     }
@@ -1067,6 +1079,7 @@
       if (probeY < firstRect.top + firstRect.height / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
+          setPointerSortPlaceholderMarkerSide(state, "right");
         }
         return;
       }
@@ -1080,6 +1093,7 @@
       if (probeX < firstRect.left + firstRect.width / 2) {
         if (placeholder !== firstItem.previousElementSibling) {
           container.insertBefore(placeholder, firstItem);
+          setPointerSortPlaceholderMarkerSide(state, "right");
         }
         return;
       }
@@ -1089,17 +1103,20 @@
     if (axis !== "horizontal" && axis !== "vertical" && probeY > containerRect.bottom - 18) {
       if (placeholder.nextElementSibling !== endReference) {
         container.insertBefore(placeholder, endReference);
+        setPointerSortPlaceholderMarkerSide(state, "left");
       }
       return;
     }
 
     if (axis === "vertical" && probeY > containerRect.bottom - 18) {
       container.insertBefore(placeholder, endReference);
+      setPointerSortPlaceholderMarkerSide(state, "left");
       return;
     }
 
     if (axis === "horizontal" && probeX > containerRect.right - 18) {
       container.insertBefore(placeholder, endReference);
+      setPointerSortPlaceholderMarkerSide(state, "left");
       return;
     }
 
@@ -1125,6 +1142,7 @@
         const cmp = comparePointerToSortableItem(axis, probeX, probeY, getPointerSortComparisonRect(nextItem, state));
         if (cmp > 0) {
           container.insertBefore(placeholder, nextItem.nextElementSibling);
+          setPointerSortPlaceholderMarkerSide(state, "left");
           return true;
         }
         return false;
@@ -1137,6 +1155,7 @@
         const cmp = comparePointerToSortableItem(axis, probeX, probeY, getPointerSortComparisonRect(prevItem, state));
         if (cmp < 0) {
           container.insertBefore(placeholder, prevItem);
+          setPointerSortPlaceholderMarkerSide(state, "right");
           return true;
         }
         return false;

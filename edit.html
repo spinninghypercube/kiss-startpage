@@ -750,6 +750,14 @@
       box-shadow: inset 0 0 0 2px rgba(147, 197, 253, 0.95);
     }
 
+    .sortable-placeholder.sortable-placeholder-grid-line[data-marker-side="right"]::before {
+      left: 100%;
+    }
+
+    .sortable-placeholder.sortable-placeholder-grid-line[data-marker-side="right"]::after {
+      left: 100%;
+    }
+
     .sortable-placeholder.sortable-placeholder-grid-line.sortable-placeholder-grid-preserve-slot::before,
     .sortable-placeholder.sortable-placeholder-grid-line.sortable-placeholder-grid-preserve-slot::after {
       display: none;
@@ -2284,6 +2292,6 @@
 
   <script src="dashboard-common.js?v=2.0.0"></script>
   <script src="dashboard-ui.js?v=2.0.0"></script>
-  <script src="admin.js?v=2.0.6"></script>
+  <script src="admin.js?v=2.0.7"></script>
 </body>
 </html>
