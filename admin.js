@@ -626,7 +626,43 @@
     return overlay;
   }
 
+  function clearButtonSortBoundaryShift(state) {
+    if (!state || !state.buttonBoundaryShiftEl) {
+      return;
+    }
+    const el = state.buttonBoundaryShiftEl;
+    if (el && el.style) {
+      if (state.buttonBoundaryShiftOriginalTransform === null) {
+        el.style.removeProperty("transform");
+      } else {
+        el.style.transform = state.buttonBoundaryShiftOriginalTransform;
+      }
+    }
+    state.buttonBoundaryShiftEl = null;
+    state.buttonBoundaryShiftDx = 0;
+    state.buttonBoundaryShiftOriginalTransform = null;
+  }
+
+  function applyButtonSortBoundaryShift(state, itemEl, dx) {
+    const shiftDx = Math.round(Number(dx) || 0);
+    if (!state || !itemEl || !itemEl.style || !shiftDx) {
+      clearButtonSortBoundaryShift(state);
+      return;
+    }
+    if (state.buttonBoundaryShiftEl === itemEl && state.buttonBoundaryShiftDx === shiftDx) {
+      return;
+    }
+
+    clearButtonSortBoundaryShift(state);
+
+    state.buttonBoundaryShiftEl = itemEl;
+    state.buttonBoundaryShiftDx = shiftDx;
+    state.buttonBoundaryShiftOriginalTransform = itemEl.style.transform || null;
+    itemEl.style.transform = `translateX(${shiftDx}px)`;
+  }
+
   function cleanupButtonSortBoundaryOverlay(state) {
+    clearButtonSortBoundaryShift(state);
     if (!state || !state.buttonBoundaryOverlay) {
       return;
     }
@@ -681,9 +717,12 @@
       placeholder.classList.contains("sortable-placeholder-grid-preserve-slot") ||
       !placeholder.isConnected
     ) {
+      clearButtonSortBoundaryShift(state);
       overlay.style.display = "none";
       return;
     }
+
+    clearButtonSortBoundaryShift(state);
 
     const itemSelector =
       state.options && typeof state.options.itemSelector === "string" ? state.options.itemSelector : "[data-button-sort-item]";
@@ -702,6 +741,9 @@
     let x = 0;
     let top = 0;
     let height = 0;
+    let shiftTarget = null;
+    let shiftDx = 0;
+    const visualGapPx = 8;
 
     const verticalOverlap =
       prevRect && nextRect ? Math.min(prevRect.bottom, nextRect.bottom) - Math.max(prevRect.top, nextRect.top) : 0;
@@ -715,19 +757,32 @@
       x = (prevRect.right + nextRect.left) / 2;
       top = Math.min(prevRect.top, nextRect.top);
       height = Math.max(prevRect.bottom, nextRect.bottom) - top;
+      shiftTarget = nextItem || null;
+      shiftDx = visualGapPx;
     } else if (markerSide === "left" && prevRect) {
       x = prevRect.right;
       top = prevRect.top;
       height = prevRect.height;
+      shiftTarget = prevItem || null;
+      shiftDx = -visualGapPx;
     } else if (markerSide === "right" && nextRect) {
       x = nextRect.left;
       top = nextRect.top;
       height = nextRect.height;
+      shiftTarget = nextItem || null;
+      shiftDx = visualGapPx;
     } else if (prevRect || nextRect) {
       const refRect = prevRect || nextRect;
       x = markerSide === "right" ? refRect.left : refRect.right;
       top = refRect.top;
       height = refRect.height;
+      if (prevRect && !nextRect) {
+        shiftTarget = prevItem || null;
+        shiftDx = -visualGapPx;
+      } else if (nextRect && !prevRect) {
+        shiftTarget = nextItem || null;
+        shiftDx = visualGapPx;
+      }
     } else {
       const slotRect = placeholder.getBoundingClientRect();
       const lineTop = readButtonSortPlaceholderLineNumber(placeholder, "--button-drop-line-top", 0);
@@ -738,8 +793,16 @@
     }
 
     if (!Number.isFinite(x) || !Number.isFinite(top) || !Number.isFinite(height) || height <= 0) {
+      clearButtonSortBoundaryShift(state);
       overlay.style.display = "none";
       return;
+    }
+
+    if (shiftTarget && shiftDx) {
+      applyButtonSortBoundaryShift(state, shiftTarget, shiftDx);
+      x += shiftDx / 2;
+    } else {
+      clearButtonSortBoundaryShift(state);
     }
 
     overlay.style.display = "";
