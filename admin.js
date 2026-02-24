@@ -645,6 +645,17 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function setButtonSortPlaceholderDetached(state, detached) {
+    if (!state || !state.placeholder || !state.placeholder.classList) {
+      return;
+    }
+    const placeholder = state.placeholder;
+    if (!placeholder.classList.contains("sortable-placeholder-grid-internal")) {
+      return;
+    }
+    placeholder.classList.toggle("sortable-placeholder-grid-detached", Boolean(detached));
+  }
+
   function updateButtonSortBoundaryOverlay(state) {
     if (!state || !state.started || !state.placeholder) {
       cleanupButtonSortBoundaryOverlay(state);
@@ -1332,6 +1343,8 @@
       }
     }
 
+    setButtonSortPlaceholderDetached(state, false);
+
     if (state.options && typeof state.options.cleanupDragFeedback === "function") {
       try {
         state.options.cleanupDragFeedback(state);
@@ -1613,6 +1626,7 @@
             ) {
               state.placeholder.classList.remove("sortable-placeholder-grid-preserve-slot");
             }
+            setButtonSortPlaceholderDetached(state, true);
           }
           repositionPointerSortPlaceholder(state, moveEvent.clientX, moveEvent.clientY);
           updatePointerSortDragFeedback(state);
