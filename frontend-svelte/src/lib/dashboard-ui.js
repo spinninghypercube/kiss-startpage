@@ -49,6 +49,7 @@ function applyDashboardThemeCssVariables(themeLike, options) {
   const navSurfaceColor = pageColor || (opts.defaultPageColor || '#0f172a');
   const pageSurfaceColor = pageColor || (opts.defaultPageColor || '#0f172a');
   const groupSurfaceColor = groupColor || (opts.defaultGroupColor || '#111827');
+  const switchKnobColor = pickHighContrastColor(groupSurfaceColor);
   const flatGroupShell = pageSurfaceColor === groupSurfaceColor;
   const flatClassName = opts.flatClassName || '';
 
@@ -88,6 +89,9 @@ function applyDashboardThemeCssVariables(themeLike, options) {
   }
 
   setCssVariable(root, '--dashboard-tab-active-text', activeTabTextColor);
+  setCssVariable(root, '--dashboard-switch-track-bg', groupSurfaceColor);
+  setCssVariable(root, '--dashboard-switch-track-border', hexColorToRgba(switchKnobColor, 0.22));
+  setCssVariable(root, '--dashboard-switch-knob-bg', switchKnobColor);
 
   return {
     pageColor: pageSurfaceColor,

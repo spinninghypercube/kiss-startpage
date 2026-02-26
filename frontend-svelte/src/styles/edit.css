@@ -17,6 +17,9 @@
       --dashboard-nav-tab-text: #0f172a;
       --dashboard-nav-tab-hover-bg: #e2e8f0;
       --dashboard-nav-tab-hover-text: #020617;
+      --dashboard-switch-track-bg: #475569;
+      --dashboard-switch-track-border: rgba(248, 250, 252, 0.22);
+      --dashboard-switch-knob-bg: #ffffff;
       --admin-entry-add-accent: #f8fafc;
       --admin-entry-add-accent-soft: rgba(248, 250, 252, 0.75);
       --admin-entry-add-accent-hover-bg: rgba(248, 250, 252, 0.14);
@@ -565,9 +568,11 @@
       position: absolute;
       inset: 0;
       cursor: pointer;
-      background: #475569;
+      background: var(--dashboard-switch-track-bg, #475569);
+      border: 1px solid var(--dashboard-switch-track-border, rgba(248, 250, 252, 0.22));
+      box-sizing: border-box;
       border-radius: 9999px;
-      transition: background-color 0.2s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .ios-switch-slider::before {
@@ -578,13 +583,13 @@
       left: 0.2rem;
       top: 0.2rem;
       border-radius: 50%;
-      background: #fff;
+      background: var(--dashboard-switch-knob-bg, #fff);
       box-shadow: 0 2px 6px rgba(2, 6, 23, 0.35);
       transition: transform 0.2s ease;
     }
 
     .ios-switch input:checked + .ios-switch-slider {
-      background: #2563eb;
+      background: var(--dashboard-switch-track-bg, #475569);
     }
 
     .ios-switch input:checked + .ios-switch-slider::before {
