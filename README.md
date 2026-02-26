@@ -138,6 +138,21 @@ Basic smoke test:
 
 If no admin account exists yet, the smoke test bootstraps the first one using the provided username/password.
 
+## Updating
+
+Easiest update path: rerun the same one-shot installer command you used for the initial install. This updates the app code/build and keeps your existing data.
+
+Linux one-shot (systemd install):
+- `curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap.sh | sudo bash`
+
+Docker one-shot (Docker Compose install):
+- `curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap-docker.sh | bash`
+
+Notes:
+- Reuse the same flags you used originally (`--port`, `--install-dir`, `--data-dir`, or `--dir`).
+- Reuse the same user/root context you used originally, especially for the Docker one-shot install.
+- If you installed from a local git checkout instead of the one-shot installers, use the manual upgrade flow below.
+
 ## Upgrades
 
 Recommended upgrade flow:
