@@ -130,12 +130,25 @@ export function applyAdminThemePreview(themeLike, defaults) {
   root.style.setProperty('--admin-group-add-accent-hover-bg', hexColorToRgba(groupAccent, 0.1));
 
   const surfaceText = pickHighContrastColor(groupSurfaceColor);
+  const pageText = pickHighContrastColor(dashboardSurfaceColor);
   const panelSurface = blendHexColors(dashboardSurfaceColor, '#0f172a', 0.72) || '#0f172a';
   const panelText = pickHighContrastColor(panelSurface);
+  const inputFocusColor = activeTabColor || tabColor || groupAccent || entryAccent || '#60a5fa';
   root.style.setProperty('--admin-surface-text-color', surfaceText);
   root.style.setProperty('--admin-surface-text-muted', hexColorToRgba(surfaceText, 0.88));
+  root.style.setProperty('--admin-page-text-color', pageText);
+  root.style.setProperty('--admin-page-text-muted', hexColorToRgba(pageText, 0.88));
   root.style.setProperty('--admin-panel-text-color', panelText);
   root.style.setProperty('--admin-panel-text-muted', hexColorToRgba(panelText, 0.88));
+  root.style.setProperty('--admin-input-bg', groupSurfaceColor);
+  root.style.setProperty('--admin-input-text', surfaceText);
+  root.style.setProperty('--admin-input-placeholder', hexColorToRgba(surfaceText, 0.72));
+  root.style.setProperty('--admin-input-border', hexColorToRgba(surfaceText, 0.28));
+  root.style.setProperty('--admin-input-focus-border', inputFocusColor);
+  root.style.setProperty('--admin-input-focus-ring', hexColorToRgba(inputFocusColor, 0.22));
+  root.style.setProperty('--admin-modal-bg', dashboardSurfaceColor);
+  root.style.setProperty('--admin-modal-chrome-bg', blendHexColors(dashboardSurfaceColor, '#0f172a', 0.08) || dashboardSurfaceColor);
+  root.style.setProperty('--admin-modal-border', hexColorToRgba(pageText, 0.22));
 }
 
 export const DashboardUI = {
