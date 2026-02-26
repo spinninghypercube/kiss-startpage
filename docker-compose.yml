@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kiss-this-dashboard:local
+    ports:
+      - "${KISS_PORT:-8788}:8788"
+    volumes:
+      - dashboard_data:/data
+    restart: unless-stopped
+
+volumes:
+  dashboard_data:
+

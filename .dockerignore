@@ -1,0 +1,7 @@
+.git
+.gitignore
+backend-go/kissdash-go
+frontend-svelte/node_modules
+frontend-svelte/dist
+frontend-svelte/.svelte-kit
+

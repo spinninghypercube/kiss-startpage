@@ -11,7 +11,7 @@ KISS this dashboard is a self-hosted homepage/dashboard for homelabs and persona
 - Per-tab theming + reusable theme presets.
 - Multiple icon library integrations plus embedded/custom icon support.
 - Self-hosted auth and local persistence (no external account required).
-- Plain systemd deployment on Debian/Ubuntu (Go backend + built Svelte frontend).
+- Docker Compose or plain systemd deployment on Linux.
 
 <img width="430" height="840" alt="image" src="https://github.com/user-attachments/assets/ffaca904-8216-482e-828c-2874761dbcfd" />
 
@@ -25,6 +25,41 @@ Important:
 - On first visit, the app prompts you to create the first admin username/password (no shared default credentials).
 - If you import an older users file with a legacy default account, the admin UI can still force a password change before edits.
 - Reverse proxy setup is optional and not bundled; an nginx example is included under `ops/nginx/`.
+
+## One Shot Install
+
+### Linux (Debian/Ubuntu, systemd)
+
+Paste this on a Debian/Ubuntu server (runs as root via `sudo`), installs dependencies, clones the repo, builds the app, installs the systemd service, and prints the URL:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap.sh | sudo bash
+```
+
+Optional flags (append after `sudo bash -s --`):
+- `--port 8788`
+- `--install-dir /opt/kiss-this-dashboard`
+- `--data-dir /var/lib/kiss-this-dashboard`
+- `--branch main`
+
+Example:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap.sh | sudo bash -s -- --port 8788
+```
+
+### Docker (Docker Compose)
+
+Paste this on a Linux host that already has Docker + Docker Compose installed. It clones the repo, builds the container, starts it, and prints the URL:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap-docker.sh | bash
+```
+
+Optional flags (append after `bash -s --`):
+- `--port 8788`
+- `--dir ~/kiss-this-dashboard-docker`
+- `--branch main`
 
 ## Quick Start (Debian/Ubuntu, systemd)
 
@@ -57,6 +92,23 @@ What `ops/install.sh` does:
 If you want the app behind nginx on port 80/443:
 - use `ops/nginx/kiss-this-dashboard.conf`
 - it proxies all requests to the Go backend (`127.0.0.1:8788`)
+
+## Quick Start (Docker Compose)
+
+Requirements:
+- `docker`
+- Docker Compose plugin (`docker compose`) or `docker-compose`
+
+Run from the cloned repo:
+1. Start:
+   - `docker compose up -d --build`
+2. Open:
+   - Dashboard: `http://127.0.0.1:8788/`
+   - Editor: `http://127.0.0.1:8788/edit`
+
+Notes:
+- Persistent app data (config, users, private icons) is stored in the `dashboard_data` volume.
+- To change the host port, set `KISS_PORT` in `.env` (for example `KISS_PORT=8080`).
 
 ## First Run / Credentials
 
@@ -102,5 +154,6 @@ Recommended upgrade flow:
 
 - `backend-go/main.go` Go API + auth + config storage + static file serving
 - `frontend-svelte/` Svelte frontend source + Vite build config
+- `Dockerfile` and `docker-compose.yml` for containerized deployment
 - `dashboard-default-config.json` starter config used on first run and for reset-to-starter
-- `ops/` user-facing install/backup/restore/smoke-test scripts + systemd/nginx templates
+- `ops/` user-facing install/backup/restore/smoke-test scripts + one-shot installers + systemd/nginx templates
