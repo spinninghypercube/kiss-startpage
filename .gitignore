@@ -1,0 +1,5 @@
+frontend-svelte/node_modules/
+frontend-svelte/dist/
+frontend-svelte/.svelte-kit/
+backend-go/kissdash-go
+
