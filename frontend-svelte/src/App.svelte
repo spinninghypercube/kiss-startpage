@@ -1294,7 +1294,7 @@
 
           {#if !editorGroups.length}
             <div id="groupsEditor">
-              <div class="box panel-box">
+              <div class="box group-box">
                 <p class="muted">No groups configured yet. Add a group to get started.</p>
               </div>
             </div>
