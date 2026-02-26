@@ -347,6 +347,11 @@
       margin: 0 0 10px;
     }
 
+    /* In flat mode, align the title text with the button content inset. */
+    .dashboard-group-shell-flat .group-title {
+      padding-inline: 0.75rem;
+    }
+
     .dashboard-group-shell-flat .group-title:not(:last-child) {
       margin: 0 0 10px;
     }
