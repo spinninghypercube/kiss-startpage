@@ -1,17 +1,16 @@
 # KISS this dashboard
 
-KISS this dashboard is a self-hosted homepage/dashboard for homelabs and personal start pages, with a built-in web editor so you can design the layout directly in the browser.
+> Your homelab start page, built in the browser — no config files, no YAML, no restarts.
 
-## USP's
+## Features
 
-- Keep it stupid simple: no heavy stack, no cloud dependency, no over-engineered setup.
-- WYSIWYG layout and theming
+- WYSIWYG layout and theming: design everything directly in the browser
+- Drag-and-drop editing: reorder tabs, groups, and buttons visually
+- Multiple icon library integrations plus embedded/custom icon support
 - Mobile friendly
-- Drag-and-drop editing: reorder tabs, groups, and buttons visually.
-- Global dashboard theming + reusable theme presets (per-tab themes removed).
-- Multiple icon library integrations plus embedded/custom icon support.
-- Self-hosted auth and local persistence (no external account required).
-- Docker Compose or plain systemd deployment on Linux.
+- Self-hosted auth and local persistence (no external account required)
+- No heavy stack, no cloud dependency, no over-engineered setup
+- Docker Compose or plain systemd deployment on Linux
 
 <img width="430" height="840" alt="image" src="https://github.com/user-attachments/assets/ffaca904-8216-482e-828c-2874761dbcfd" />
 
@@ -26,7 +25,21 @@ Important:
 - If you import an older users file with a legacy default account, the admin UI can still force a password change before edits.
 - Reverse proxy setup is optional and not bundled; an nginx example is included under `ops/nginx/`.
 
-## One Shot Install
+## Quick Start
+
+**Docker:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap-docker.sh | bash
+```
+
+**Linux (Debian/Ubuntu, systemd):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap.sh | sudo bash
+```
+
+Then open `http://<your-server-ip>:8788` — the first visit walks you through creating an admin account.
+
+## Install Options
 
 ### Linux (Debian/Ubuntu, systemd)
 
