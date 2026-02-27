@@ -6,14 +6,26 @@
   import './styles/edit.css';
   import { DashboardCommon, DEFAULT_THEME, normalizeHexColorLoose, clampInteger, iconSource } from './lib/dashboard-common.js';
   import { DashboardUI, applyAdminThemePreview } from './lib/dashboard-ui.js';
+  import { normalizeTheme, applyThemeCssVars, COLOR_GROUPS, THEME_DEFAULTS } from './lib/theme.js';
   import LoginView from './components/LoginView.svelte';
   import AccountPane from './components/AccountPane.svelte';
   import ButtonModal from './components/ButtonModal.svelte';
+  import ThemeEditor from './components/ThemeEditor.svelte';
 
   // ─── Constants ────────────────────────────────────────────────────────────────
 
   const DEFAULT_BUTTON_COLOR_OPTIONS = DashboardCommon.getDefaultButtonColorOptions();
   const DND_FLIP_DURATION_MS = 160;
+
+  /** Returns #ffffff or #000000 for a high-contrast 2px border on a color swatch. */
+  function contrastBorder(hex) {
+    hex = (hex || '#000000').replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff';
+  }
   const BUILT_IN_THEME_PRESETS = [
     {
       id: 'builtin-default-theme',
@@ -60,32 +72,23 @@
       }
     },
     {
-      id: 'builtin-calm-blueprint',
-      name: 'Calm Blueprint',
+      id: 'builtin-warm-ember',
+      name: 'Warm Ember',
       theme: {
-        backgroundColor: '#0b1324', groupBackgroundColor: '#12203a', textColor: '#dbeafe',
-        buttonTextColor: '#082f49', tabColor: '#1d4ed8', activeTabColor: '#38bdf8',
-        tabTextColor: '#dbeafe', activeTabTextColor: '#082f49',
-        buttonColorMode: 'solid-all', buttonCycleHueStep: 15,
-        buttonCycleSaturation: 70, buttonCycleLightness: 74, buttonSolidColor: '#7dd3fc'
+        backgroundColor: '#160c02', groupBackgroundColor: '#2a1600', textColor: '#fde8c4',
+        buttonTextColor: '#160c02', tabColor: '#3d2006', activeTabColor: '#f59e0b',
+        tabTextColor: '#fde8c4', activeTabTextColor: '#160c02',
+        buttonColorMode: 'cycle-custom', buttonCycleHueStep: 25,
+        buttonCycleSaturation: 80, buttonCycleLightness: 62, buttonSolidColor: '#f59e0b'
       }
     }
   ];
-  const COLOR_FIELDS = [
-    { key: 'backgroundColor',      label: 'Tab Background Color', placeholder: '#0f172a', help: 'Background color for this dashboard page.',                        columnClass: 'is-6' },
-    { key: 'groupBackgroundColor', label: 'Group Box Color',       placeholder: '#111827', help: 'Background color for the button groups on this dashboard.',        columnClass: 'is-6' },
-    { key: 'textColor',            label: 'Page Text Color',       placeholder: '#f8fafc', help: 'Main text color for this tab on dashboard and admin.',              columnClass: 'is-6' },
-    { key: 'buttonTextColor',      label: 'Button Text Color',     placeholder: '#0f172a', help: 'Text color used on dashboard buttons and admin button previews.',   columnClass: 'is-6' },
-    { key: 'tabColor',             label: 'Tab Color',             placeholder: '#1e293b', help: 'Inactive tab background color.',                                    columnClass: 'is-6' },
-    { key: 'activeTabColor',       label: 'Active Tab Color',      placeholder: '#2563eb', help: 'Active tab background color.',                                      columnClass: 'is-6' },
-    { key: 'tabTextColor',         label: 'Tab Text Color',        placeholder: '#cbd5e1', help: 'Inactive tab text color.',                                          columnClass: 'is-6' },
-    { key: 'activeTabTextColor',   label: 'Active Tab Text Color', placeholder: '#ffffff', help: 'Active tab text color.',                                            columnClass: 'is-6' }
-  ];
+  // COLOR_FIELDS removed — use COLOR_GROUPS from theme.js
 
   // ─── Shared state ─────────────────────────────────────────────────────────────
 
   let editMode = false;
-  let config = { title: 'KISS this dashboard', dashboards: [], themePresets: [] };
+  let config = { title: 'KISS this dashboard', theme: {}, dashboards: [], themePresets: [] };
   let activeDashboardId = DashboardCommon.getActiveDashboardId();
   let activeDashboard = null;
   let loading = true;
@@ -125,7 +128,7 @@
   let pageTitleDraft = '';
   let enableInternalLinksDraft = false;
   let showLinkToggleDraft = true;
-  let themeDraft = buildDefaultThemeValues();
+  let themeDraft = normalizeTheme({});
   let themePresetSelectValue = '';
   let themePresetName = '';
 
@@ -161,6 +164,15 @@
   let themeButtonMode = DashboardCommon.normalizeButtonColorMode(themeDraft.buttonColorMode);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+  let _saveTimer = null;
+  function debouncedSave() {
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+      persistConfig();
+      _saveTimer = null;
+    }, 500);
+  }
 
   function clone(value) { return DashboardCommon.clone(value); }
 
@@ -198,14 +210,13 @@
     if (!Array.isArray(config.dashboards) || !config.dashboards.length) {
       config.dashboards = [{
         id: DashboardCommon.createId('dashboard'), label: 'Dashboard 1',
-        ...buildDefaultThemeValues(), enableInternalLinks: false,
+        enableInternalLinks: false,
         showLinkModeToggle: true, themePresets: [], groups: []
       }];
     }
     if (!activeDashboardId || getDashboardIndex(activeDashboardId) < 0) {
       activeDashboardId = config.dashboards[0].id;
     }
-    DashboardCommon.setActiveDashboardId(activeDashboardId);
   }
 
   function getActiveDashboard() {
@@ -231,9 +242,8 @@
     if (editMode) {
       syncDraftsFromActiveDashboard();
       applyCurrentAdminThemePreview();
-    } else {
-      applyDashboardTheme();
     }
+    // Theme is now global — no per-tab theme application needed
   }
 
   // ─── Theme helpers ────────────────────────────────────────────────────────────
@@ -267,14 +277,20 @@
   }
 
   function applyDashboardTheme() {
-    DashboardUI.applyDashboardThemeCssVariables(getActiveDashboard(), {
+    // Apply global theme from config.theme (or themeDraft if in edit mode)
+    const themeSource = editMode ? themeDraft : (config.theme || {});
+    applyThemeCssVars(themeSource);
+    // Also apply the DashboardUI vars for nav tab contrast and switch colors
+    DashboardUI.applyDashboardThemeCssVariables(themeSource, {
       flatClassName: 'dashboard-group-shell-flat',
       groupRadius: '0.85rem', setGroupRadius: true,
-      defaultPageColor: '#0f172a', defaultGroupColor: '#111827'
+      defaultPageColor: THEME_DEFAULTS.backgroundColor,
+      defaultGroupColor: THEME_DEFAULTS.groupBackgroundColor
     });
   }
 
   function applyCurrentAdminThemePreview() {
+    applyThemeCssVars(themeDraft);
     applyAdminThemePreview({ ...themeDraft }, DEFAULT_THEME);
   }
 
@@ -299,10 +315,12 @@
     const groups = Array.isArray(dashboard?.groups) ? dashboard.groups : [];
     const result = [];
     let colorIndex = 0;
+    // Merge global theme into dashboard for button color calculations
+    const themeSource = { ...dashboard, ...themeDraft };
     for (const group of groups) {
       const entries = [];
       for (const entry of Array.isArray(group?.entries) ? group.entries : []) {
-        const color = DashboardCommon.getButtonColorPair(dashboard, group, colorIndex);
+        const color = DashboardCommon.getButtonColorPair(themeSource, group, colorIndex);
         colorIndex += 1;
         entries.push({ entry, color, href: buttonResolvedHref(entry, dashboard), iconSrc: iconSource(entry) });
       }
@@ -333,6 +351,9 @@
       config = DashboardCommon.normalizeConfig(await DashboardCommon.getConfig());
       activeDashboardId = getValidDashboardId('');
       ensureActiveDashboard();
+      DashboardCommon.setActiveDashboardId(activeDashboardId);
+      // Initialize themeDraft from config.theme (migration: normalizeConfig handles it)
+      themeDraft = normalizeTheme(config.theme || config.dashboards?.[0] || {});
       applyPageTitle();
       applyDashboardTheme();
     } catch (error) {
@@ -350,7 +371,7 @@
     ensureActiveDashboard();
     syncDraftsFromActiveDashboard();
     applyCurrentAdminThemePreview();
-    if (message && message.trim()) showMessage(message, 'is-success');
+    // success notifications removed
   }
 
   // ─── Mode switching ───────────────────────────────────────────────────────────
@@ -363,6 +384,7 @@
       if (!status?.authenticated) {
         authSetupRequired = Boolean(status?.setupRequired);
         authenticated = false;
+        applyCurrentAdminThemePreview();
         if (authSetupRequired) showMessage('Create the first admin account to continue.', 'is-warning');
         return;
       }
@@ -429,7 +451,8 @@
     pageTitleDraft = dashboard.label || '';
     enableInternalLinksDraft = Boolean(dashboard.enableInternalLinks);
     showLinkToggleDraft = dashboard.showLinkModeToggle !== false;
-    themeDraft = normalizeThemePresetTheme(dashboard);
+    // Theme is global — read from config.theme, not per-dashboard
+    themeDraft = normalizeTheme(config.theme || {});
     if (!themePresetName.trim()) themePresetName = getNextCustomThemePresetName();
   }
 
@@ -448,19 +471,56 @@
     } else if (key === 'buttonSolidColor') {
       next[key] = normalizeHexColorLoose(value) || next[key] || DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor;
     } else {
-      const fallback = COLOR_FIELDS.find((f) => f.key === key);
-      next[key] = normalizeHexColorLoose(value) || (commit ? (fallback?.placeholder || DEFAULT_THEME[key] || '') : next[key]);
-      if (!next[key]) next[key] = fallback?.placeholder || DEFAULT_THEME[key] || '';
+      next[key] = normalizeHexColorLoose(value) || (commit ? (THEME_DEFAULTS[key] || '') : next[key]);
+      if (!next[key]) next[key] = THEME_DEFAULTS[key] || '';
     }
     themeDraft = next;
+    // Write to config.theme
+    config.theme = { ...themeDraft };
+    touchConfig();
     applyCurrentAdminThemePreview();
-    if (commit) saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); });
+    if (commit) debouncedSave();
   }
 
-  function resetThemeColors() {
-    themeDraft = { ...buildDefaultThemeValues() };
+  // ThemeEditor event handlers
+  function handleThemeUpdate(e) {
+    setThemeField(e.detail.key, e.detail.value, { commit: true });
+  }
+
+  function handleSavePreset(e) {
+    themePresetName = e.detail.name || themePresetName;
+    saveCurrentThemePreset().catch((err) => { console.error(err); showMessage('Failed to save theme preset.', 'is-danger'); });
+  }
+
+  function handleLoadPreset(e) {
+    const preset = e.detail.preset;
+    if (!preset) return;
+    themePresetName = getNextCustomThemePresetName();
+    themeDraft = normalizeTheme(preset.theme);
+    config.theme = { ...themeDraft };
+    touchConfig();
     applyCurrentAdminThemePreview();
-    saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to reset tab colors.', 'is-danger'); });
+    debouncedSave();
+  }
+
+  function handleDeletePreset(e) {
+    const preset = e.detail.preset;
+    if (!preset) return;
+    // Map to themePresetSelectValue format for deleteSelectedThemePreset
+    themePresetSelectValue = preset.id ? `saved:${preset.id}` : '';
+    deleteSelectedThemePreset()
+      .then(() => {
+        // Reset to default theme after deleting a custom preset
+        const defaultPreset = getResolvedBuiltInThemePresets().find((p) => p.id === 'builtin-default-theme');
+        if (defaultPreset) {
+          themeDraft = normalizeTheme(defaultPreset.theme);
+          config.theme = { ...themeDraft };
+          touchConfig();
+          applyCurrentAdminThemePreview();
+          debouncedSave();
+        }
+      })
+      .catch((err) => { console.error(err); showMessage('Failed to delete theme preset.', 'is-danger'); });
   }
 
   // ─── Edit-mode theme preset functions ────────────────────────────────────────
@@ -485,9 +545,11 @@
     const preset = getSelectedThemePreset();
     if (!preset) return;
     themePresetName = getNextCustomThemePresetName();
-    themeDraft = normalizeThemePresetTheme(preset.theme);
+    themeDraft = normalizeTheme(preset.theme);
+    config.theme = { ...themeDraft };
+    touchConfig();
     applyCurrentAdminThemePreview();
-    await saveActiveDashboardSettings({ silentSuccess: true });
+    await persistConfig('');
   }
 
   async function saveCurrentThemePreset() {
@@ -497,7 +559,7 @@
     const saved = getSavedThemePresets();
     const existingIndex = saved.findIndex((p) => p.name.trim().toLowerCase() === name.toLowerCase());
     const presetId = existingIndex >= 0 ? saved[existingIndex].id : DashboardCommon.createId('theme');
-    const nextPreset = { id: presetId, name, theme: normalizeThemePresetTheme(themeDraft) };
+    const nextPreset = { id: presetId, name, theme: normalizeTheme(themeDraft) };
     const nextSaved = saved.slice();
     if (existingIndex >= 0) { nextSaved.splice(existingIndex, 1, nextPreset); } else { nextSaved.push(nextPreset); }
     config.themePresets = nextSaved;
@@ -540,19 +602,8 @@
     if (!dashboard) { showMessage('Dashboard not found.', 'is-danger'); return; }
     dashboard.enableInternalLinks = Boolean(enableInternalLinksDraft);
     dashboard.showLinkModeToggle = Boolean(showLinkToggleDraft);
-    dashboard.backgroundColor = themeDraft.backgroundColor;
-    dashboard.groupBackgroundColor = themeDraft.groupBackgroundColor;
-    dashboard.textColor = themeDraft.textColor;
-    dashboard.buttonTextColor = themeDraft.buttonTextColor;
-    dashboard.tabColor = themeDraft.tabColor;
-    dashboard.activeTabColor = themeDraft.activeTabColor;
-    dashboard.tabTextColor = themeDraft.tabTextColor;
-    dashboard.activeTabTextColor = themeDraft.activeTabTextColor;
-    dashboard.buttonColorMode = DashboardCommon.normalizeButtonColorMode(themeDraft.buttonColorMode);
-    dashboard.buttonCycleHueStep = clampInteger(themeDraft.buttonCycleHueStep, 1, 180, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleHueStep);
-    dashboard.buttonCycleSaturation = clampInteger(themeDraft.buttonCycleSaturation, 0, 100, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleSaturation);
-    dashboard.buttonCycleLightness = clampInteger(themeDraft.buttonCycleLightness, 0, 100, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleLightness);
-    dashboard.buttonSolidColor = DashboardUI.normalizeHexColor(themeDraft.buttonSolidColor) || DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor;
+    // Theme is now global — write to config.theme, not per-dashboard
+    config.theme = { ...themeDraft };
     touchConfig();
     await persistConfig(silentSuccess ? '' : 'Tab settings updated.');
   }
@@ -649,7 +700,7 @@
 
     if (mode === 'add-dashboard') {
       const label = (actionModal.titleValue || '').trim() || `Dashboard ${(config.dashboards || []).length + 1}`;
-      const dashboard = { id: DashboardCommon.makeSafeTabId(label), label, ...buildDefaultThemeValues(), enableInternalLinks: false, showLinkModeToggle: true, themePresets: [], groups: [] };
+      const dashboard = { id: DashboardCommon.makeSafeTabId(label), label, enableInternalLinks: false, showLinkModeToggle: true, themePresets: [], groups: [] };
       const existingIds = new Set((config.dashboards || []).map((d) => d.id));
       let id = dashboard.id; let n = 2;
       while (!id || existingIds.has(id)) { id = `${dashboard.id || 'dashboard'}-${n}`; n += 1; }
@@ -762,7 +813,7 @@
     if (isNew) dashboard.groups[groupIndex].entries.push(buttonEntry);
     touchConfig(); buttonModalOpen = false;
     await persistConfig('');
-    if (isNew) showMessage('Button added.', 'is-success');
+
   }
 
   function handleButtonModalDeleteRequest(event) {
@@ -900,7 +951,7 @@
         animation: DND_FLIP_DURATION_MS, draggable: 'div[data-button-sort-item][data-button-id]',
         handle: '.button-drag-handle',
         scroll: true, scrollSensitivity: 100, scrollSpeed: 10,
-        forceFallback: true,
+        forceFallback: true, fallbackOnBody: true,
         onEnd: () => { try { applyButtonOrdersFromDom(); queueDndPersist('Failed to reorder buttons.'); } catch (e) { console.error(e); showMessage('Failed to reorder buttons.', 'is-danger'); } }
       })
     );
@@ -917,6 +968,7 @@
   function decoratedEditorGroups() {
     const dashboard = getActiveDashboard();
     if (!dashboard) return [];
+    // Use global theme (themeDraft) for button color settings
     const previewDashboard = { ...dashboard, ...themeDraft };
     const groups = Array.isArray(dashboard.groups) ? dashboard.groups : [];
     let colorIndex = 0;
@@ -990,6 +1042,8 @@
   $: showLinkToggle = !editMode && Boolean(activeDashboard?.enableInternalLinks);
   $: showEditInToolbar = true;
   $: { loading; activeDashboard; config; if (!loading && activeDashboard && !editMode) { applyPageTitle(); applyDashboardTheme(); } }
+  // Ensure allPresets is available for ThemeEditor
+  $: allPresets = [...(builtInThemePresets || []), ...(savedThemePresets || [])];
 </script>
 
 <svelte:head>
@@ -1165,141 +1219,34 @@
               </div>
             </div>
             <div class="field mb-3">
-              <label class="checkbox">
-                <input id="enableInternalLinksCheckbox" type="checkbox" bind:checked={enableInternalLinksDraft} on:change={() => saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); })} />
-                Use internal and external links
-              </label>
+              <div class="mode-switch mode-switch-plain">
+                <span class="mode-switch-label">Use internal and external links</span>
+                <label class="ios-switch" for="enableInternalLinksCheckbox">
+                  <input id="enableInternalLinksCheckbox" type="checkbox" bind:checked={enableInternalLinksDraft} on:change={() => saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); })} aria-label="Use internal and external links" />
+                  <span class="ios-switch-slider"></span>
+                </label>
+              </div>
             </div>
 
             <div id="liveColorEditorPanel" class={`live-color-editor-panel ${showThemeEditor ? '' : 'is-hidden'}`.trim()}>
               <div class="live-color-editor-head">
                 <h3 class="title is-5">Theme Editor</h3>
-                <button id="resetThemeColorsBtn" class="button is-link is-light is-small" type="button" on:click={resetThemeColors}>Reset Colors</button>
-              </div>
-              <div class="columns is-multiline">
-                <div class="column is-12">
-                  <div class="field mb-0">
-                    <label class="label" for="themePresetSelect">Theme Presets</label>
-                    <div class="theme-preset-editor-card">
-                      <div class="theme-preset-toolbar">
-                        <p class="control is-expanded">
-                          <span class="select is-fullwidth">
-                            <select id="themePresetSelect" bind:value={themePresetSelectValue} on:change={(e) => onThemePresetSelectChange(e.currentTarget.value).catch((err) => { console.error(err); showMessage('Failed to load theme preset.', 'is-danger'); })}>
-                              <option value="">-Select a theme-</option>
-                              {#if builtInThemePresets.length}
-                                <optgroup label="Built-in">
-                                  {#each builtInThemePresets as preset}
-                                    <option value={`builtin:${preset.id}`}>{preset.name}</option>
-                                  {/each}
-                                </optgroup>
-                              {/if}
-                              {#if savedThemePresets.length}
-                                <optgroup label="Saved themes">
-                                  {#each savedThemePresets as preset}
-                                    <option value={`saved:${preset.id}`}>{preset.name}</option>
-                                  {/each}
-                                </optgroup>
-                              {/if}
-                            </select>
-                          </span>
-                        </p>
-                        <p class={`control ${canDeleteThemePreset ? '' : 'is-hidden'}`.trim()}>
-                          <button id="themePresetDeleteBtn" class="button is-danger is-light" type="button" disabled={!canDeleteThemePreset} on:click={() => deleteSelectedThemePreset().catch((err) => { console.error(err); showMessage('Failed to delete theme preset.', 'is-danger'); })}>Delete</button>
-                        </p>
-                      </div>
-                      <div class="theme-preset-save-row">
-                        <input id="themePresetNameInput" class="input" type="text" maxlength="60" placeholder="Save current theme as preset" bind:value={themePresetName} />
-                        <button id="themePresetSaveBtn" class="button is-link" type="button" on:click={() => saveCurrentThemePreset().catch((err) => { console.error(err); showMessage('Failed to save theme preset.', 'is-danger'); })}>Save Current Theme</button>
-                      </div>
-                      <p class="help mb-0">Built-in presets are available for every tab. Saved themes are available across all tabs.</p>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="column is-12">
-                  <div class="field mb-0">
-                    <label class="label" for="buttonColorModeSelect">Button Colors</label>
-                    <div class="button-color-editor-card">
-                      <div class="field">
-                        <div class="control">
-                          <div class="select is-fullwidth">
-                            <select id="buttonColorModeSelect" bind:value={themeDraft.buttonColorMode} on:change={() => { themeDraft = { ...themeDraft, buttonColorMode: DashboardCommon.normalizeButtonColorMode(themeDraft.buttonColorMode) }; applyCurrentAdminThemePreview(); saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); }); }}>
-                              <option value="cycle-custom">Color cycle</option>
-                              <option value="solid-all">Solid color (all buttons)</option>
-                              <option value="solid-per-group">Solid colors per group</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                      <div class:is-hidden={themeButtonMode !== 'cycle-custom'}>
-                        <div class="button-color-mode-grid">
-                          <div class="field mb-0">
-                            <label class="label" for="buttonCycleHueStepInput">Hue Step</label>
-                            <input id="buttonCycleHueStepInput" class="input button-color-number-input" type="number" min="1" max="180" step="1" value={themeDraft.buttonCycleHueStep} on:input={(e)=> { themeDraft = { ...themeDraft, buttonCycleHueStep: clampInteger(e.currentTarget.value, 1, 180, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleHueStep) }; }} on:change={() => saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); })} />
-                          </div>
-                          <div class="field mb-0">
-                            <label class="label" for="buttonCycleSaturationInput">Saturation (%)</label>
-                            <input id="buttonCycleSaturationInput" class="input button-color-number-input" type="number" min="0" max="100" step="1" value={themeDraft.buttonCycleSaturation} on:input={(e)=> { themeDraft = { ...themeDraft, buttonCycleSaturation: clampInteger(e.currentTarget.value, 0, 100, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleSaturation) }; }} on:change={() => saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); })} />
-                          </div>
-                          <div class="field mb-0">
-                            <label class="label" for="buttonCycleLightnessInput">Lightness (%)</label>
-                            <input id="buttonCycleLightnessInput" class="input button-color-number-input" type="number" min="0" max="100" step="1" value={themeDraft.buttonCycleLightness} on:input={(e)=> { themeDraft = { ...themeDraft, buttonCycleLightness: clampInteger(e.currentTarget.value, 0, 100, DEFAULT_BUTTON_COLOR_OPTIONS.buttonCycleLightness) }; }} on:change={() => saveActiveDashboardSettings().catch((err) => { console.error(err); showMessage('Failed to update tab settings.', 'is-danger'); })} />
-                          </div>
-                        </div>
-                      </div>
-                      <div class={`mt-3 ${themeButtonMode === 'solid-all' ? '' : 'is-hidden'}`.trim()}>
-                        <div class="field mb-0">
-                          <label class="label" for="buttonSolidColorCodeInput">Button Color</label>
-                          <div class="field has-addons color-picker-row">
-                            <p class="control"><span class="color-swatch-addon" aria-hidden="true" style={`background-color:${themeDraft.buttonSolidColor || DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor}`}></span></p>
-                            <p class="control is-expanded"><input id="buttonSolidColorCodeInput" class="input color-code-input" type="text" inputmode="text" maxlength="7" placeholder="#93c5fd" value={themeDraft.buttonSolidColor} on:keydown={(e)=> e.key === 'Enter' && e.currentTarget.blur()} on:input={(e)=> { const n = normalizeHexColorLoose(e.currentTarget.value); if (n) themeDraft = { ...themeDraft, buttonSolidColor: n }; }} on:blur={(e)=> setThemeField('buttonSolidColor', e.currentTarget.value, { commit: true })} /></p>
-                            <p class="control"><button class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code" on:click={() => pasteColorIntoField('buttonSolidColor')}>📋</button></p>
-                            <p class="control"><label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">🎨<input class="color-picker-input" type="color" value={themeDraft.buttonSolidColor} on:input={(e)=> { themeDraft = { ...themeDraft, buttonSolidColor: e.currentTarget.value }; applyCurrentAdminThemePreview(); }} on:change={(e)=> setThemeField('buttonSolidColor', e.currentTarget.value, { commit: true })} /></label></p>
-                          </div>
-                        </div>
-                      </div>
-                      <p class={`help mt-3 ${themeButtonMode === 'solid-per-group' ? '' : 'is-hidden'}`.trim()}>Per-group button color pickers are shown inside each group block.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {#each COLOR_FIELDS as field}
-                  <div class={`column ${field.columnClass}`}>
-                    <div class="field mb-0">
-                      <label class="label" for={`${field.key}CodeInput`}>{field.label}</label>
-                      <div class="field has-addons color-picker-row">
-                        <p class="control"><span id={`${field.key}Swatch`} class="color-swatch-addon" aria-hidden="true" style={`background-color:${themeDraft[field.key] || field.placeholder}`}></span></p>
-                        <p class="control is-expanded">
-                          <input
-                            id={`${field.key}CodeInput`}
-                            class="input color-code-input"
-                            type="text" inputmode="text" maxlength="7"
-                            placeholder={field.placeholder}
-                            value={themeDraft[field.key] || field.placeholder}
-                            on:keydown={(e)=> e.key === 'Enter' && e.currentTarget.blur()}
-                            on:input={(e) => { const n = normalizeHexColorLoose(e.currentTarget.value); if (n) { themeDraft = { ...themeDraft, [field.key]: n }; applyCurrentAdminThemePreview(); } }}
-                            on:blur={(e) => setThemeField(field.key, e.currentTarget.value, { commit: true })}
-                          />
-                        </p>
-                        <p class="control"><button id={`${field.key}PasteBtn`} class="input-icon-btn paste-btn" type="button" title="Paste color code" aria-label="Paste color code" on:click={() => pasteColorIntoField(field.key)}>📋</button></p>
-                        <p class="control"><label class="input-icon-btn color-picker-btn" title="Open color picker" aria-label="Open color picker">🎨<input id={`${field.key}Input`} class="color-picker-input" type="color" value={themeDraft[field.key] || field.placeholder} on:input={(e) => { themeDraft = { ...themeDraft, [field.key]: e.currentTarget.value }; applyCurrentAdminThemePreview(); }} on:change={(e)=> setThemeField(field.key, e.currentTarget.value, { commit: true })} /></label></p>
-                      </div>
-                      <p class="help mt-2">{field.help}</p>
-                    </div>
-                  </div>
-                {/each}
               </div>
+              <ThemeEditor
+                theme={themeDraft}
+                builtinPresets={builtInThemePresets}
+                savedPresets={savedThemePresets}
+                presetName={themePresetName}
+                on:update={handleThemeUpdate}
+                on:savePreset={handleSavePreset}
+                on:loadPreset={handleLoadPreset}
+                on:deletePreset={handleDeletePreset}
+              />
             </div>
           </div>
 
-          {#if !editorGroups.length}
-            <div id="groupsEditor">
-              <div class="box group-box">
-                <p class="muted">No groups configured yet. Add a group to get started.</p>
-              </div>
-            </div>
-          {:else}
-            <div id="groupsEditor">
+          <div id="groupsEditor">
               {#each editorGroups as row (row.group.id)}
                 <section
                   class={`box group-box ${row.group.groupEnd ? 'group-end' : ''}`.trim()}
@@ -1319,7 +1266,7 @@
                       {#if themeButtonMode === 'solid-per-group'}
                         <div class="group-button-color-inline">
                           <span class="group-button-color-inline-label">Button Color</span>
-                          <input type="color" aria-label={`Button color for group ${row.group.title || 'group'}`} value={getGroupButtonSolidColor(row.group)} on:input={(e)=> setGroupButtonSolidColor(row.group, e.currentTarget.value, false)} on:change={(e)=> setGroupButtonSolidColor(row.group, e.currentTarget.value, true)} />
+                          <input type="color" aria-label={`Button color for group ${row.group.title || 'group'}`} value={getGroupButtonSolidColor(row.group)} style="border: 2px solid {contrastBorder(getGroupButtonSolidColor(row.group))};" on:input={(e)=> setGroupButtonSolidColor(row.group, e.currentTarget.value, false)} on:change={(e)=> setGroupButtonSolidColor(row.group, e.currentTarget.value, true)} />
                           <input class="input" type="text" maxlength="7" inputmode="text" placeholder={DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor} value={getGroupButtonSolidColor(row.group)} on:keydown={(e)=> e.key === 'Enter' && e.currentTarget.blur()} on:input={(e)=> { const n = normalizeHexColorLoose(e.currentTarget.value); if (n) setGroupButtonSolidColor(row.group, n, false); }} on:blur={(e)=> setGroupButtonSolidColor(row.group, e.currentTarget.value, true)} aria-label={`Button color code for group ${row.group.title || 'group'}`} />
                         </div>
                       {/if}
@@ -1359,8 +1306,7 @@
                   </div>
                 </section>
               {/each}
-            </div>
-          {/if}
+          </div>
 
           <div class="box panel-box group-add-panel">
             <button id="addGroupBtn" class="button is-fullwidth group-add-panel-button" type="button" title="Add group" aria-label="Add group" on:click={openAddGroupModal}>+</button>

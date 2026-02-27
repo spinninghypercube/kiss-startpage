@@ -1,4 +1,3 @@
-
 const LINK_MODE_KEY = "homelabDashboardLinkMode";
 const ACTIVE_DASHBOARD_KEY = "homelabDashboardActiveDashboard";
 const BUTTON_COLOR_MODE_CYCLE_DEFAULT = "cycle-default";
@@ -576,14 +575,26 @@ function normalizeGlobalThemePresets(config, dashboards) {
   return deduped;
 }
 
+function normalizeConfigTheme(inputTheme, dashboards) {
+  // If config.theme already exists, use it; otherwise migrate from first dashboard or use empty
+  if (inputTheme && typeof inputTheme === "object") {
+    return normalizeThemePresetTheme(inputTheme);
+  }
+  // Migration: copy theme fields from first dashboard
+  const firstDashboard = Array.isArray(dashboards) && dashboards.length ? dashboards[0] : {};
+  return normalizeThemePresetTheme(firstDashboard);
+}
+
 function normalizeConfig(inputConfig) {
   const config = inputConfig && typeof inputConfig === "object" ? inputConfig : {};
   const migrationTabs = normalizeMigrationTabs(config.tabs);
   const dashboards = normalizeDashboards(config, migrationTabs);
   const themePresets = normalizeGlobalThemePresets(config, dashboards);
+  const theme = normalizeConfigTheme(config.theme, dashboards);
 
   return {
     title: normalizeTitle(config.title),
+    theme,
     themePresets,
     dashboards
   };

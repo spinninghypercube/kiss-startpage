@@ -301,7 +301,8 @@
     }
 
     .ios-switch input:checked + .ios-switch-slider {
-      background: var(--dashboard-switch-track-bg, #475569);
+      background: var(--dashboard-tab-active-bg, #2563eb);
+      border-color: var(--dashboard-tab-active-bg, #2563eb);
     }
 
     .ios-switch input:checked + .ios-switch-slider::before {
@@ -347,9 +348,8 @@
       margin: 0 0 10px;
     }
 
-    /* In flat mode, align the title text with the button content inset. */
     .dashboard-group-shell-flat .group-title {
-      padding-inline: 0.75rem;
+      padding-inline: var(--dashboard-group-title-inset, 0.75rem);
     }
 
     .dashboard-group-shell-flat .group-title:not(:last-child) {

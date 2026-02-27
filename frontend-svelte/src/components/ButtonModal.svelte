@@ -243,17 +243,15 @@
 
         <div id="entryExternalUrlColumn" class={`column ${internalLinksEnabled ? 'is-6' : 'is-12'}`}>
           <label class="label" for="entryExternalUrlInput">External URL</label>
-          <div class="field has-addons url-input-row">
+          <div class="field url-input-row">
             <p class="control is-expanded"><input id="entryExternalUrlInput" class="input" type="url" placeholder="https://example.com" bind:value={externalUrl} /></p>
-            <p class="control"><button id="entryExternalUrlPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste URL" aria-label="Paste URL" on:click={() => pasteText((text) => (externalUrl = text), 'External URL')}>📋</button></p>
           </div>
         </div>
 
         <div id="entryInternalUrlColumn" class={`column is-6 ${internalLinksEnabled ? '' : 'is-hidden'}`.trim()}>
           <label class="label" for="entryInternalUrlInput">Internal URL</label>
-          <div class="field has-addons url-input-row">
+          <div class="field url-input-row">
             <p class="control is-expanded"><input id="entryInternalUrlInput" class="input" type="url" placeholder="http://192.168.x.x:port" bind:value={internalUrl} disabled={!internalLinksEnabled} /></p>
-            <p class="control"><button id="entryInternalUrlPasteBtn" class="input-icon-btn paste-btn" type="button" title="Paste URL" aria-label="Paste URL" on:click={() => pasteText((text) => (internalUrl = text), 'Internal URL')}>📋</button></p>
           </div>
         </div>
 

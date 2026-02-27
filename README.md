@@ -8,7 +8,7 @@ KISS this dashboard is a self-hosted homepage/dashboard for homelabs and persona
 - WYSIWYG layout and theming
 - Mobile friendly
 - Drag-and-drop editing: reorder tabs, groups, and buttons visually.
-- Per-tab theming + reusable theme presets.
+- Global dashboard theming + reusable theme presets (per-tab themes removed).
 - Multiple icon library integrations plus embedded/custom icon support.
 - Self-hosted auth and local persistence (no external account required).
 - Docker Compose or plain systemd deployment on Linux.

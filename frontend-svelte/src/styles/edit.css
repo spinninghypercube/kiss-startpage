@@ -539,6 +539,12 @@
       background: rgba(30, 41, 59, 0.45);
     }
 
+    .mode-switch.mode-switch-plain {
+      border: none;
+      background: transparent;
+      padding: 0;
+    }
+
     .mode-switch-label {
       color: var(--text-soft);
       font-size: 0.8rem;
@@ -589,7 +595,8 @@
     }
 
     .ios-switch input:checked + .ios-switch-slider {
-      background: var(--dashboard-switch-track-bg, #475569);
+      background: var(--dashboard-tab-active-bg, #2563eb);
+      border-color: var(--dashboard-tab-active-bg, #2563eb);
     }
 
     .ios-switch input:checked + .ios-switch-slider::before {
@@ -948,11 +955,19 @@
     }
 
     .admin-group-shell-flat .group-head {
-      padding: 0 0.4rem;
+      padding: 0;
     }
 
     .admin-group-shell-flat .entry-grid {
-      margin: 0 !important;
+      margin: -0.4rem !important;
+    }
+
+    .admin-group-shell-flat .login-box {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
     }
 
     .admin-group-shell-flat .dashboard-settings-box,
@@ -966,8 +981,8 @@
 
     .admin-group-shell-flat .dashboard-settings-box > *,
     .admin-group-shell-flat .admin-editor-box > * {
-      padding-left: 0.4rem;
-      padding-right: 0.4rem;
+      padding-left: var(--dashboard-group-inner-padding, 0.4rem);
+      padding-right: var(--dashboard-group-inner-padding, 0.4rem);
     }
 
     .dashboard-settings-box {
@@ -1050,10 +1065,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      padding: 0.2rem 0.35rem;
-      border-radius: 0.55rem;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(15, 23, 42, 0.26);
+      padding: 0;
     }
 
     .group-button-color-inline-label {
@@ -1064,14 +1076,15 @@
     }
 
     .group-button-color-inline input[type="color"] {
-      width: 1.85rem;
-      min-width: 1.85rem;
-      height: 1.85rem;
-      padding: 0;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 0.45rem;
+      width: 2.5rem;
+      min-width: 2.5rem;
+      height: 2.5rem;
+      padding: 2px;
+      border: none;
+      border-radius: 4px;
       background: transparent;
       cursor: pointer;
+      -webkit-appearance: none;
     }
 
     .group-button-color-inline input[type="color"]::-webkit-color-swatch-wrapper {
@@ -1080,17 +1093,11 @@
 
     .group-button-color-inline input[type="color"]::-webkit-color-swatch {
       border: none;
-      border-radius: 0.35rem;
+      border-radius: 3px;
     }
 
     .group-button-color-inline .input {
-      width: 6.35rem;
-      min-height: 1.85rem;
-      height: 1.85rem;
-      padding: 0 0.45rem;
-      font-size: 0.8rem;
-      border-radius: 0.45rem;
-      text-transform: lowercase;
+      width: 7rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     }
 
