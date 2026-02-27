@@ -405,6 +405,7 @@
   }
 
   function exitEditMode() {
+    if (dndPersistTimer) { clearTimeout(dndPersistTimer); dndPersistTimer = null; }
     if (window.history?.pushState) window.history.pushState(null, '', '/');
     editMode = false;
     authenticated = false;
@@ -881,6 +882,15 @@
     }
     const grids = Array.from(document.querySelectorAll('#groupsEditor .entry-grid[data-group-id]'));
     if (!grids.length) return;
+    // Pre-collect every button ID present anywhere in the DOM so the fallback
+    // loop below doesn't re-add buttons that SortableJS moved to another group.
+    const domPresentIds = new Set();
+    for (const grid of grids) {
+      if (!(grid instanceof HTMLElement)) continue;
+      for (const id of collectChildIds(grid, ':scope > div[data-button-sort-item][data-button-id]', 'buttonId')) {
+        if (id) domPresentIds.add(id);
+      }
+    }
     const seenIds = new Set();
     for (const grid of grids) {
       if (!(grid instanceof HTMLElement)) continue;
@@ -895,8 +905,11 @@
         if (!entry) continue;
         nextEntries.push(entry); seenIds.add(id);
       }
+      // Only fall back to config data for buttons that are genuinely absent from
+      // the entire DOM (e.g. render glitch) — not ones that moved to another group.
       for (const entry of Array.isArray(group.entries) ? group.entries : []) {
         if (!entry?.id || seenIds.has(entry.id)) continue;
+        if (domPresentIds.has(entry.id)) continue;
         nextEntries.push(entry); seenIds.add(entry.id);
       }
       group.entries = nextEntries;
@@ -1282,7 +1295,6 @@
                         class="column is-half-mobile is-one-third-tablet is-one-quarter-desktop"
                         data-button-sort-item=""
                         data-button-id={cell.buttonEntry.id}
-                        animate:flip={{ duration: DND_FLIP_DURATION_MS }}
                       >
                         <div class="entry-admin-card">
                           <button
