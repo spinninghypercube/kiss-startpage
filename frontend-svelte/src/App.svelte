@@ -1317,12 +1317,11 @@
       {/if}
     {/if}
 
+  {#if appVersion && editMode}
+    <div class="app-version-badge">v{appVersion}</div>
+  {/if}
   </div>
 </section>
-
-{#if appVersion && editMode}
-  <div class="app-version-badge">v{appVersion}</div>
-{/if}
 
 <!-- ─── Modals (edit mode only) ──────────────────────────────────────── -->
 {#if editMode}
