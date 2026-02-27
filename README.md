@@ -22,6 +22,10 @@ Important:
 
 ## Quick Start
 
+**Windows Download (EXE):**
+
+[Download Windows installer (.exe)](https://github.com/spinninghypercube/kiss-this-dashboard/releases/download/windows-installer-latest/kiss-this-dashboard-bootstrap.exe)
+
 **Docker:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-this-dashboard/main/ops/bootstrap-docker.sh | bash
@@ -75,7 +79,7 @@ EXE option:
 - direct rolling download URL: `https://github.com/spinninghypercube/kiss-this-dashboard/releases/download/windows-installer-latest/kiss-this-dashboard-bootstrap.exe`
 - latest versioned release URL: `https://github.com/spinninghypercube/kiss-this-dashboard/releases/latest/download/kiss-this-dashboard-bootstrap.exe`
 - run it as Administrator
-- run the `Build Windows Bootstrap EXE` workflow once (workflow_dispatch) to create/update the rolling asset
+- rolling EXE is auto-published from `.github/workflows/windows-bootstrap-exe.yml` on each push to `main`
 - this EXE is generated from `ops/bootstrap-windows.ps1` by `.github/workflows/windows-bootstrap-exe.yml`
 
 ### Linux (Debian/Ubuntu, systemd)

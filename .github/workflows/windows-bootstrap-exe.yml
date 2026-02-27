@@ -3,6 +3,8 @@ name: Build Windows Bootstrap EXE
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -43,7 +45,7 @@ jobs:
           path: dist/kiss-this-dashboard-bootstrap.exe
 
       - name: Publish Rolling EXE Release
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: windows-installer-latest
