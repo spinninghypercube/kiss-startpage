@@ -6,7 +6,7 @@ Your homelab start page, built in the browser.
 
 - WYSIWYG layout and theming
 - Drag-and-drop tabs, groups, and buttons
-- Multiple icon integrations plus custom icons
+- Multiple icon library integrations
 - Local auth and local data storage
 - Docker or systemd install on Linux
 - One-click EXE installer on Windows
@@ -15,7 +15,7 @@ Your homelab start page, built in the browser.
 
 ## Quick Start
 
-### Windows (No CLI)
+### Windows
 
 [Download Windows installer (.exe)](https://github.com/spinninghypercube/kiss-this-dashboard/releases/download/windows-installer-latest/kiss-this-dashboard-bootstrap.exe)
 
