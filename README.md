@@ -18,11 +18,14 @@ Your homelab start page, built in the browser.
 
 ### Windows
 
-[Download Windows installer (.exe)](https://github.com/spinninghypercube/kiss-startpage/releases/download/windows-installer-latest/kiss-startpage-bootstrap.exe)
+| | Download |
+|---|---|
+| **Latest (rolling)** | [kiss-startpage-bootstrap.exe](https://github.com/spinninghypercube/kiss-startpage/releases/download/windows-installer-latest/kiss-startpage-bootstrap.exe) |
+| **v2.2.0** | [kiss-startpage-bootstrap-v2.2.0.exe](https://github.com/spinninghypercube/kiss-startpage/releases/download/v2.2.0/kiss-startpage-bootstrap-v2.2.0.exe) |
 
 - Run as Administrator.
 - Opens on `http://<your-server-ip>:8788`.
-- EXE assets include versioned files like `kiss-startpage-bootstrap-v2.1.1.exe` plus stable `kiss-startpage-bootstrap.exe`.
+- Installs a Windows service, Start Menu shortcuts, and an uninstaller (Settings → Apps).
 
 Optional PowerShell one-shot:
 
@@ -48,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-startpage/ma
 
 | Installer | Main Script | Useful Flags |
 |---|---|---|
-| Windows | `ops/bootstrap-windows.ps1` | `-Port`, `-Bind`, `-InstallRoot`, `-DataDir`, `-Branch`, `-NoService`, `-SkipDependencyInstall` |
+| Windows | `ops/bootstrap-windows.ps1` | `-Port`, `-Bind`, `-InstallRoot`, `-DataDir`, `-Branch`, `-NoService`, `-NoAutoStart`, `-SkipDependencyInstall` |
 | Linux systemd | `ops/bootstrap.sh` | `--port`, `--bind`, `--install-dir`, `--data-dir`, `--branch` |
 | Linux Docker | `ops/bootstrap-docker.sh` | `--port`, `--dir`, `--branch` |
 
