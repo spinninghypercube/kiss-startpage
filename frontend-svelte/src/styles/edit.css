@@ -1323,6 +1323,14 @@
       font-size: 0.9rem;
     }
 
+    .modal-background {
+      outline: none;
+      border: none;
+      -webkit-tap-highlight-color: transparent;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
     .modal-card-head,
     .modal-card-foot {
       border-color: var(--admin-modal-border, rgba(148, 163, 184, 0.2));
