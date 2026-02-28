@@ -391,7 +391,7 @@ Write-Host 'Press any key to close...' -NoNewline
         # Set Run as Administrator flag on the shortcut
         $lnkBytes = [System.IO.File]::ReadAllBytes($uninstallLnk)
         $lnkBytes[0x15] = $lnkBytes[0x15] -bor 0x20
-        [System.IO.File]::WriteAllBytes($uninstallLnk, $lnkBytes)"
+        [System.IO.File]::WriteAllBytes($uninstallLnk, $lnkBytes)
 
         # ── Add / Remove Programs ────────────────────────────────────────────────
         Write-Step "Registering in Programs and Features"
