@@ -149,7 +149,6 @@ try {
             }
         }
         Start-Process -FilePath $exePath -ArgumentList ($argParts -join " ") -Verb RunAs
-        $selfElevating = $true
         return
     }
 
@@ -437,9 +436,7 @@ Write-Host 'Press any key to close...' -NoNewline
     Write-Host "INSTALL FAILED: $_" -ForegroundColor Red
     Write-Host ""
 } finally {
-    if (-not $selfElevating) {
-        Write-Host ""
-        Write-Host "Press any key to close..." -NoNewline
-        $null = [Console]::ReadKey($true)
-    }
+    Write-Host ""
+    Write-Host "Press any key to close..." -NoNewline
+    $null = [Console]::ReadKey($true)
 }
