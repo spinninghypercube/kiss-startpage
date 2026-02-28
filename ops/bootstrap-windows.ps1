@@ -194,10 +194,9 @@ try {
     New-Item -ItemType Directory -Path $privateIconsDir     -Force | Out-Null
 
     if (Test-Path (Join-Path $appDir ".git")) {
-        Write-Step "Reusing existing checkout: $appDir"
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "fetch", "--tags", "origin") -FailureMessage "git fetch failed" -SuppressStderr
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "checkout", $Branch)         -FailureMessage "git checkout failed" -SuppressStderr
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "pull", "--ff-only", "origin", $Branch) -FailureMessage "git pull failed" -SuppressStderr
+        Write-Step "Updating existing checkout: $appDir"
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "fetch", "--depth=1", "origin", $Branch) -FailureMessage "git fetch failed" -SuppressStderr
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "reset", "--hard", "origin/$Branch")     -FailureMessage "git reset failed" -SuppressStderr
     }
     elseif (Test-Path $appDir) {
         throw "Install app directory exists but is not a git checkout: $appDir"
