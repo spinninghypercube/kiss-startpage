@@ -279,6 +279,8 @@ if (-not `$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administr
     throw 'Run as Administrator to uninstall.'
 }
 
+try {
+
 Write-Host '[uninstall] Stopping and removing service...'
 `$svc = Get-Service -Name `$ServiceName -ErrorAction SilentlyContinue
 if (`$null -ne `$svc) {
@@ -354,6 +356,12 @@ if (`$kept.Count -gt 0) {
     Write-Host '  IDs: Git.Git  /  OpenJS.NodeJS.LTS  /  GoLang.Go  /  NSSM.NSSM'
 }
 
+} catch {
+    Write-Host ''
+    Write-Host "UNINSTALL ERROR: `$_" -ForegroundColor Red
+    Write-Host ''
+}
+
 Write-Host ''
 Write-Host 'Press any key to close...' -NoNewline
 `$null = [Console]::ReadKey(`$true)
@@ -365,10 +373,15 @@ Write-Host 'Press any key to close...' -NoNewline
         New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
         $displayHost = if (Test-PathIsLocalhost -Address $Bind) { "127.0.0.1" } else { $ip }
         New-UrlShortcut -Path (Join-Path $startMenuDir "KISS Startpage.url") -Url "http://${displayHost}:${Port}/"
-        New-LnkShortcut -Path (Join-Path $startMenuDir "Uninstall KISS Startpage.lnk") `
+        $uninstallLnk = Join-Path $startMenuDir "Uninstall KISS Startpage.lnk"
+        New-LnkShortcut -Path $uninstallLnk `
             -Target "powershell.exe" `
             -Arguments "-NoProfile -ExecutionPolicy Bypass -File `"$uninstallerPath`"" `
             -Description "Uninstall KISS Startpage"
+        # Set Run as Administrator flag on the shortcut
+        $lnkBytes = [System.IO.File]::ReadAllBytes($uninstallLnk)
+        $lnkBytes[0x15] = $lnkBytes[0x15] -bor 0x20
+        [System.IO.File]::WriteAllBytes($uninstallLnk, $lnkBytes)"
 
         # ── Add / Remove Programs ────────────────────────────────────────────────
         Write-Step "Registering in Programs and Features"
