@@ -65,10 +65,11 @@ function Install-WingetPackage {
         throw "winget not found. Install $DisplayName manually, or install winget and rerun."
     }
     Write-Step "Installing $DisplayName ($PackageId) via winget"
-    Invoke-External -FilePath "winget" -Arguments @(
+    $proc = Start-Process -FilePath "winget" -ArgumentList @(
         "install", "--id", $PackageId, "--exact",
         "--accept-package-agreements", "--accept-source-agreements", "--silent"
-    ) -FailureMessage "Failed to install $DisplayName"
+    ) -NoNewWindow -Wait -PassThru
+    if ($proc.ExitCode -ne 0) { throw "Failed to install $DisplayName (exit $($proc.ExitCode))" }
 }
 
 function Ensure-Command {
