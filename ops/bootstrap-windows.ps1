@@ -73,6 +73,14 @@ function Install-WingetPackage {
 }
 
 $script:installedDepIds = @()
+$script:isUpdate        = $false
+$script:prevVersion     = $null
+$script:rb_installRoot  = $false   # we created the install root (fresh install)
+$script:rb_service      = $false   # we created the service (fresh install)
+$script:rb_firewall     = $false   # we created the firewall rule
+$script:rb_startMenu    = $false   # we created the Start Menu folder
+$script:rb_registry     = $false   # we created the registry entry
+$script:rb_serviceName  = ""       # service name, for rollback use
 
 function Ensure-Command {
     param(
@@ -148,6 +156,11 @@ try {
         throw "Administrator privileges required. Right-click the EXE and choose 'Run as administrator'."
     }
 
+    $kissRegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\KissStartpage"
+    $script:prevVersion = if (Test-Path $kissRegPath) { (Get-ItemProperty $kissRegPath -ErrorAction SilentlyContinue).DisplayVersion } else { $null }
+    $script:isUpdate    = -not [string]::IsNullOrWhiteSpace($script:prevVersion)
+    if ($script:isUpdate) { Write-Step "Existing install detected (v$($script:prevVersion)) — updating" }
+
     Refresh-Path
 
     Write-Step "Checking required tools"
@@ -174,6 +187,7 @@ try {
     $startMenuDir        = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\KISS Startpage"
 
     Write-Step "Preparing install directories"
+    if (-not (Test-Path $resolvedInstallRoot)) { $script:rb_installRoot = $true }
     New-Item -ItemType Directory -Path $resolvedInstallRoot -Force | Out-Null
     $script:installedDepIds | ConvertTo-Json | Set-Content -Path $depsManifestPath -Encoding UTF8
     New-Item -ItemType Directory -Path $resolvedDataDir     -Force | Out-Null
@@ -194,7 +208,11 @@ try {
     }
 
     $appVersion = Get-AppVersion -RepoRoot $appDir
-    Write-Step "Detected app version: $appVersion"
+    if ($script:isUpdate) {
+        Write-Step "Updating: v$($script:prevVersion) → v$appVersion"
+    } else {
+        Write-Step "Installing: v$appVersion"
+    }
 
     Write-Step "Building frontend"
     Push-Location $frontendDir
@@ -231,6 +249,7 @@ cd /d "$backendDir"
         if ($null -eq $existingRule) {
             Write-Step "Creating firewall rule for TCP port $Port"
             New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port | Out-Null
+            $script:rb_firewall = $true
         }
     }
 
@@ -243,9 +262,11 @@ cd /d "$backendDir"
         $appParameters = "/c `"$launcherPath`""
 
         $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        $script:rb_serviceName = $ServiceName
         if ($null -eq $existingService) {
             Write-Step "Installing Windows service: $ServiceName"
             Invoke-External -FilePath "nssm" -Arguments @("install", $ServiceName, $cmdExe, $appParameters) -FailureMessage "nssm install failed"
+            $script:rb_service = $true
         }
         else {
             Write-Step "Updating existing service: $ServiceName"
@@ -399,6 +420,7 @@ Read-Host 'Press Enter to close'
 
         # ── Start Menu ───────────────────────────────────────────────────────────
         Write-Step "Creating Start Menu shortcuts"
+        if (-not (Test-Path $startMenuDir)) { $script:rb_startMenu = $true }
         New-Item -ItemType Directory -Path $startMenuDir -Force | Out-Null
         $displayHost = if (Test-PathIsLocalhost -Address $Bind) { "127.0.0.1" } else { $ip }
         New-UrlShortcut -Path (Join-Path $startMenuDir "KISS Startpage.url") -Url "http://${displayHost}:${Port}/"
@@ -415,6 +437,7 @@ Read-Host 'Press Enter to close'
         # ── Add / Remove Programs ────────────────────────────────────────────────
         Write-Step "Registering in Programs and Features"
         $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\KissStartpage"
+        if (-not (Test-Path $regPath)) { $script:rb_registry = $true }
         New-Item -Path $regPath -Force | Out-Null
         Set-ItemProperty -Path $regPath -Name "DisplayName"     -Value "KISS Startpage"
         Set-ItemProperty -Path $regPath -Name "DisplayVersion"  -Value $appVersion
@@ -445,6 +468,31 @@ Read-Host 'Press Enter to close'
 } catch {
     Write-Host ""
     Write-Host "INSTALL FAILED: $_" -ForegroundColor Red
+    Write-Host ""
+    if ($script:isUpdate) {
+        Write-Host "Attempting to restart service with existing binaries..." -ForegroundColor Yellow
+        Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "Rolling back..." -ForegroundColor Yellow
+        if ($script:rb_service -and $script:rb_serviceName) {
+            Stop-Service  -Name $script:rb_serviceName -Force -ErrorAction SilentlyContinue
+            & nssm remove $script:rb_serviceName confirm 2>$null
+        }
+        if ($script:rb_firewall) {
+            Remove-NetFirewallRule -DisplayName "KISS Startpage ($Port)" -ErrorAction SilentlyContinue
+        }
+        if ($script:rb_startMenu) {
+            $smPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\KISS Startpage"
+            Remove-Item -Recurse -Force $smPath -ErrorAction SilentlyContinue
+        }
+        if ($script:rb_registry) {
+            Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\KissStartpage" -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if ($script:rb_installRoot) {
+            Remove-Item -Recurse -Force ([System.IO.Path]::GetFullPath($InstallRoot)) -ErrorAction SilentlyContinue
+        }
+        Write-Host "Rollback complete." -ForegroundColor Yellow
+    }
     Write-Host ""
 } finally {
     Stop-Transcript | Out-Null
