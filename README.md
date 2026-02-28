@@ -21,7 +21,7 @@ Your homelab start page, built in the browser.
 | | Download |
 |---|---|
 | **Latest (rolling)** | [kiss-startpage-bootstrap.exe](https://github.com/spinninghypercube/kiss-startpage/releases/download/windows-installer-latest/kiss-startpage-bootstrap.exe) |
-| **v2.2.0** | [kiss-startpage-bootstrap-v2.2.0.exe](https://github.com/spinninghypercube/kiss-startpage/releases/download/v2.2.0/kiss-startpage-bootstrap-v2.2.0.exe) |
+| **v2.2.1** | [kiss-startpage-bootstrap-v2.2.1.exe](https://github.com/spinninghypercube/kiss-startpage/releases/download/v2.2.1/kiss-startpage-bootstrap-v2.2.1.exe) |
 
 - Run as Administrator.
 - Opens on `http://<your-server-ip>:8788`.
