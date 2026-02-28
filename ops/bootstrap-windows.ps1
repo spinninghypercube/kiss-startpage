@@ -276,7 +276,11 @@ param([switch]`$KeepData)
 `$identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
 `$principal = New-Object Security.Principal.WindowsPrincipal(`$identity)
 if (-not `$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    throw 'Run as Administrator to uninstall.'
+    Write-Host 'Requesting administrator privileges...'
+    `$args = "-NoProfile -ExecutionPolicy Bypass -File \`"`$(`$MyInvocation.MyCommand.Path)\`""
+    if (`$KeepData) { `$args += " -KeepData" }
+    Start-Process powershell.exe -ArgumentList `$args -Verb RunAs
+    exit
 }
 
 try {
