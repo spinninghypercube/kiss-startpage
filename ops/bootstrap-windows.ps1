@@ -39,9 +39,14 @@ function Invoke-External {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$Arguments = @(),
-        [string]$FailureMessage = ""
+        [string]$FailureMessage = "",
+        [switch]$SuppressStderr
     )
-    & $FilePath @Arguments
+    if ($SuppressStderr) {
+        & $FilePath @Arguments 2>$null
+    } else {
+        & $FilePath @Arguments
+    }
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         if ([string]::IsNullOrWhiteSpace($FailureMessage)) {
@@ -138,7 +143,7 @@ try {
     Write-Step "Checking required tools"
     Ensure-Command -Command "git"  -PackageId "Git.Git"          -DisplayName "Git"
     Ensure-Command -Command "node" -PackageId "OpenJS.NodeJS.LTS" -DisplayName "Node.js LTS"
-    Ensure-Command -Command "npm"  -PackageId "OpenJS.NodeJS.LTS" -DisplayName "Node.js LTS"
+    Ensure-Command -Command "npm.cmd" -PackageId "OpenJS.NodeJS.LTS" -DisplayName "Node.js LTS"
     Ensure-Command -Command "go"   -PackageId "GoLang.Go"         -DisplayName "Go"
     if (-not $NoService) {
         Ensure-Command -Command "nssm" -PackageId "NSSM.NSSM" -DisplayName "NSSM"
@@ -164,16 +169,16 @@ try {
 
     if (Test-Path (Join-Path $appDir ".git")) {
         Write-Step "Reusing existing checkout: $appDir"
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "fetch", "--tags", "origin") -FailureMessage "git fetch failed"
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "checkout", $Branch)         -FailureMessage "git checkout failed"
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "pull", "--ff-only", "origin", $Branch) -FailureMessage "git pull failed"
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "fetch", "--tags", "origin") -FailureMessage "git fetch failed" -SuppressStderr
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "checkout", $Branch)         -FailureMessage "git checkout failed" -SuppressStderr
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "pull", "--ff-only", "origin", $Branch) -FailureMessage "git pull failed" -SuppressStderr
     }
     elseif (Test-Path $appDir) {
         throw "Install app directory exists but is not a git checkout: $appDir"
     }
     else {
         Write-Step "Cloning $RepoUrl ($Branch)"
-        Invoke-External -FilePath "git" -Arguments @("clone", "--depth", "1", "--branch", $Branch, $RepoUrl, $appDir) -FailureMessage "git clone failed"
+        Invoke-External -FilePath "git" -Arguments @("clone", "--depth", "1", "--branch", $Branch, $RepoUrl, $appDir) -FailureMessage "git clone failed" -SuppressStderr
     }
 
     $appVersion = Get-AppVersion -RepoRoot $appDir
@@ -182,8 +187,8 @@ try {
     Write-Step "Building frontend"
     Push-Location $frontendDir
     try {
-        Invoke-External -FilePath "npm" -Arguments @("ci")           -FailureMessage "npm ci failed"
-        Invoke-External -FilePath "npm" -Arguments @("run", "build") -FailureMessage "npm build failed"
+        Invoke-External -FilePath "npm.cmd" -Arguments @("ci")       -FailureMessage "npm ci failed"
+        Invoke-External -FilePath "npm.cmd" -Arguments @("run", "build") -FailureMessage "npm build failed"
     }
     finally { Pop-Location }
 
