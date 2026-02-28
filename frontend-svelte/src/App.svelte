@@ -386,7 +386,6 @@
         authSetupRequired = Boolean(status?.setupRequired);
         authenticated = false;
         applyCurrentAdminThemePreview();
-        if (authSetupRequired) showMessage('Create the first admin account to continue.', 'is-warning');
         return;
       }
       authUser = status?.username || 'admin';
@@ -396,7 +395,6 @@
       applyCurrentAdminThemePreview();
       if (authMustChangePassword) {
         accountPaneOpen = true;
-        showMessage('First-time setup: change the account password before editing the startpage.', 'is-warning');
       }
     } catch (error) {
       console.error(error);
@@ -1151,11 +1149,6 @@
             <button id="logoutBtn" class="button is-danger is-light is-small" type="button" on:click={logoutSubmit}>Log Out</button>
           </div>
         </div>
-        {#if authMustChangePassword}
-          <div class="notification is-warning is-light mt-3 mb-0">
-            First-time setup required: change the account password before editing or saving startpage settings.
-          </div>
-        {/if}
       </div>
     {/if}
 
@@ -1213,7 +1206,6 @@
             applyCurrentAdminThemePreview();
             if (authMustChangePassword) {
               accountPaneOpen = true;
-              showMessage('First-time setup: change the account password before editing the startpage.', 'is-warning');
             }
           }}
         />
