@@ -10,6 +10,7 @@ Your homelab start page, built in the browser.
 - Local auth and local data storage
 - Docker or systemd install on Linux
 - One-click EXE installer on Windows
+- Mobile friendly
 
 ![KISS2](https://github.com/user-attachments/assets/ac51d41b-fb4f-454e-acee-7e43b74cd556)
 
