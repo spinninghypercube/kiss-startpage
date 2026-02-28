@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	appVersion                = "2.3.10"
+	appVersion                = "2.3.11"
 	sessionCookieNameDefault = "dash_session"
 	defaultSessionTTL        = 315360000
 	defaultIconIndexTTL      = 21600

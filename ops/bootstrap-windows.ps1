@@ -72,6 +72,8 @@ function Install-WingetPackage {
     if ($proc.ExitCode -ne 0) { throw "Failed to install $DisplayName (exit $($proc.ExitCode))" }
 }
 
+$script:installedDepIds = @()
+
 function Ensure-Command {
     param(
         [Parameter(Mandatory = $true)][string]$Command,
@@ -83,6 +85,7 @@ function Ensure-Command {
         throw "Missing required command '$Command'. Install $DisplayName and rerun."
     }
     Install-WingetPackage -PackageId $PackageId -DisplayName $DisplayName
+    $script:installedDepIds += $PackageId
     Refresh-Path
     if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
         throw "$DisplayName was installed, but '$Command' is still not available in PATH. Open a new admin PowerShell and rerun."
@@ -157,6 +160,7 @@ try {
     }
 
     $resolvedInstallRoot = [System.IO.Path]::GetFullPath($InstallRoot)
+    $depsManifestPath = Join-Path $resolvedInstallRoot "installed-deps.json"
     $appDir              = Join-Path $resolvedInstallRoot "app"
     $resolvedDataDir     = if ([string]::IsNullOrWhiteSpace($DataDir)) { Join-Path $resolvedInstallRoot "data" } else { [System.IO.Path]::GetFullPath($DataDir) }
     $privateIconsDir     = Join-Path $resolvedInstallRoot "private-icons"
@@ -171,6 +175,7 @@ try {
 
     Write-Step "Preparing install directories"
     New-Item -ItemType Directory -Path $resolvedInstallRoot -Force | Out-Null
+    $script:installedDepIds | ConvertTo-Json | Set-Content -Path $depsManifestPath -Encoding UTF8
     New-Item -ItemType Directory -Path $resolvedDataDir     -Force | Out-Null
     New-Item -ItemType Directory -Path $privateIconsDir     -Force | Out-Null
 
@@ -334,37 +339,51 @@ try {
 
 Remove-Item -LiteralPath `$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue
 Write-Host 'KISS Startpage uninstalled.'
-Write-Host ''
-Write-Host 'The following tools were installed as dependencies:'
-Write-Host '  Git     - version control, used to clone and update the app'
-Write-Host '  Node.js - JavaScript runtime, used to build the frontend'
-Write-Host '  Go      - programming language, used to build the backend'
-Write-Host '  NSSM    - Windows service manager, used to run the app as a service'
-Write-Host ''
 
-`$deps = @(
+`$allDeps = @(
     @{ Name = 'Git';     Id = 'Git.Git';           Desc = 'version control tool' },
     @{ Name = 'Node.js'; Id = 'OpenJS.NodeJS.LTS'; Desc = 'JavaScript runtime' },
     @{ Name = 'Go';      Id = 'GoLang.Go';          Desc = 'programming language runtime' },
     @{ Name = 'NSSM';    Id = 'NSSM.NSSM';          Desc = 'Windows service manager' }
 )
 
-`$kept = @()
-foreach (`$dep in `$deps) {
-    `$answer = Read-Host "Remove `$(`$dep.Name) (`$(`$dep.Desc))? (y/N)"
-    if (`$answer -match '^[Yy]') {
-        Write-Host "Removing `$(`$dep.Name)..."
-        & winget uninstall --id `$dep.Id --exact --silent 2>`$null
-    } else {
-        `$kept += `$dep.Name
-    }
+`$manifestPath = Join-Path `$InstallRoot 'installed-deps.json'
+`$installedIds = @()
+if (Test-Path `$manifestPath) {
+    `$installedIds = (Get-Content `$manifestPath -Raw | ConvertFrom-Json)
 }
+`$deps = `$allDeps | Where-Object { `$installedIds -contains `$_.Id }
 
-if (`$kept.Count -gt 0) {
+if (`$deps.Count -gt 0) {
     Write-Host ''
-    Write-Host "Kept: `$(`$kept -join ', '). You can remove them manually via:"
-    Write-Host '  Settings > Apps  -or-  winget uninstall --id <PackageId>'
-    Write-Host '  IDs: Git.Git  /  OpenJS.NodeJS.LTS  /  GoLang.Go  /  NSSM.NSSM'
+    Write-Host 'The following tools were installed by KISS Startpage:'
+    foreach (`$dep in `$deps) { Write-Host "  `$(`$dep.Name) - `$(`$dep.Desc)" }
+    Write-Host ''
+    `$answer = Read-Host 'Remove all of these? (Y/n)'
+    if (`$answer -notmatch '^[Nn]') {
+        foreach (`$dep in `$deps) {
+            Write-Host "Removing `$(`$dep.Name)..."
+            & winget uninstall --id `$dep.Id --exact --silent 2>`$null
+        }
+    } else {
+        `$kept = @()
+        foreach (`$dep in `$deps) {
+            `$answer = Read-Host "Remove `$(`$dep.Name) (`$(`$dep.Desc))? (y/N)"
+            if (`$answer -match '^[Yy]') {
+                Write-Host "Removing `$(`$dep.Name)..."
+                & winget uninstall --id `$dep.Id --exact --silent 2>`$null
+            } else {
+                `$kept += `$dep.Name
+            }
+        }
+        if (`$kept.Count -gt 0) {
+            Write-Host ''
+            Write-Host "Kept: `$(`$kept -join ', '). Remove manually via Settings > Apps or:"
+            Write-Host '  winget uninstall --id <PackageId>'
+        }
+    }
+} else {
+    Write-Host '(No dependencies were installed by KISS Startpage.)'
 }
 
 } catch {
