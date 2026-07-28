@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kiss-startpage:local
+    ports:
+      - "${KISS_PORT:-8788}:8788"
+    volumes:
+      - startpage_data:/data
+    restart: unless-stopped
+
+volumes:
+  startpage_data:
+

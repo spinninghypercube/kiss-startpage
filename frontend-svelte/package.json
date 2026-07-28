@@ -1,0 +1,23 @@
+{
+  "name": "kiss-go-svelte-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "sortablejs": "^1.15.7",
+    "svelte": "^4.2.18",
+    "svelte-dnd-action": "^0.9.67",
+    "vite": "^5.4.11",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,89 @@
+name: Build Windows Bootstrap EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-bootstrap:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Read App Version
+        id: version
+        shell: pwsh
+        run: |
+          $mainGo = Get-Content -Path backend-go/main.go -Raw
+          if ($mainGo -match 'appVersion\s*=\s*"([^"]+)"') {
+            "app_version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          } else {
+            throw "Failed to find appVersion in backend-go/main.go"
+          }
+
+      - name: Install PS2EXE
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name ps2exe -Scope CurrentUser -Force
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          New-Item -Path dist -ItemType Directory -Force | Out-Null
+          Import-Module ps2exe
+          $ver = '${{ steps.version.outputs.app_version }}'
+          $versionedExe = "dist/kiss-startpage-bootstrap-v$ver.exe"
+          Invoke-ps2exe `
+            -inputFile ops/bootstrap-windows.ps1 `
+            -outputFile $versionedExe `
+            -x64 `
+            -requireAdmin `
+            -title "KISS Startpage Installer v$ver" `
+            -description "One-shot Windows installer for KISS Startpage v$ver"
+          Copy-Item -Path $versionedExe -Destination dist/kiss-startpage-bootstrap.exe -Force
+
+      - name: Validate version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $expected = "v${{ steps.version.outputs.app_version }}"
+          $actual = "${{ github.ref_name }}"
+          if ($actual -ne $expected) {
+            throw "Tag $actual does not match application version $expected"
+          }
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiss-startpage-windows-installer
+          path: dist/*.exe
+
+      - name: Publish Rolling EXE Release
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-installer-latest
+          name: Windows Installer (Rolling)
+          prerelease: true
+          make_latest: false
+          target_commitish: ${{ github.sha }}
+          files: dist/*.exe
+
+      - name: Attach EXE to Version Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: KISS Startpage ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
+          files: dist/*.exe

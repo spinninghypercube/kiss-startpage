@@ -1,0 +1,924 @@
+const LINK_MODE_KEY = "homelabStartpageLinkMode";
+const ACTIVE_STARTPAGE_KEY = "homelabStartpageActiveTab";
+const BUTTON_COLOR_MODE_CYCLE_DEFAULT = "cycle-default";
+const BUTTON_COLOR_MODE_CYCLE_CUSTOM = "cycle-custom";
+const BUTTON_COLOR_MODE_SOLID_ALL = "solid-all";
+const BUTTON_COLOR_MODE_SOLID_PER_GROUP = "solid-per-group";
+const DEFAULT_BUTTON_COLOR_CYCLE_HUE_STEP = 15;
+const DEFAULT_BUTTON_COLOR_CYCLE_SATURATION = 70;
+const DEFAULT_BUTTON_COLOR_CYCLE_LIGHTNESS = 74;
+const DEFAULT_BUTTON_COLOR_SOLID = "#93c5fd";
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function createId(prefix) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function makeSafeTabId(rawValue) {
+  const source = (rawValue || "tab").toString().trim().toLowerCase();
+  const safe = source
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+  return safe || "tab";
+}
+
+function normalizeLinkMode(mode) {
+  return mode === "internal" ? "internal" : "external";
+}
+
+function normalizeTitle(value) {
+  if (typeof value !== "string") {
+    return "KISS Startpage";
+  }
+
+  const trimmed = value.trim();
+  return trimmed || "KISS Startpage";
+}
+
+export function normalizeHexColor(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : "";
+}
+
+function clampNumber(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function normalizeButtonColorMode(value) {
+  const mode = (value || "").toString().trim().toLowerCase();
+  if (mode === BUTTON_COLOR_MODE_CYCLE_DEFAULT) {
+    return BUTTON_COLOR_MODE_CYCLE_CUSTOM;
+  }
+  if (mode === BUTTON_COLOR_MODE_CYCLE_CUSTOM) {
+    return BUTTON_COLOR_MODE_CYCLE_CUSTOM;
+  }
+  if (mode === BUTTON_COLOR_MODE_SOLID_ALL) {
+    return BUTTON_COLOR_MODE_SOLID_ALL;
+  }
+  if (mode === BUTTON_COLOR_MODE_SOLID_PER_GROUP) {
+    return BUTTON_COLOR_MODE_SOLID_PER_GROUP;
+  }
+  return BUTTON_COLOR_MODE_CYCLE_CUSTOM;
+}
+
+function getDefaultButtonColorOptions() {
+  return {
+    buttonColorMode: BUTTON_COLOR_MODE_CYCLE_CUSTOM,
+    buttonCycleHueStep: DEFAULT_BUTTON_COLOR_CYCLE_HUE_STEP,
+    buttonCycleSaturation: DEFAULT_BUTTON_COLOR_CYCLE_SATURATION,
+    buttonCycleLightness: DEFAULT_BUTTON_COLOR_CYCLE_LIGHTNESS,
+    buttonSolidColor: DEFAULT_BUTTON_COLOR_SOLID
+  };
+}
+
+function normalizeExternalLinkHref(value) {
+  const text = (value || "").toString().trim();
+  if (!text) {
+    return "";
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:/i.test(text)) {
+    return text;
+  }
+
+  if (text.startsWith("//")) {
+    return `https:${text}`;
+  }
+
+  if (
+    text.startsWith("/") ||
+    text.startsWith("./") ||
+    text.startsWith("../") ||
+    text.startsWith("#")
+  ) {
+    return text;
+  }
+
+  if (
+    /^(?:localhost|(?:\d{1,3}\.){3}\d{1,3}|[a-z0-9.-]+\.[a-z]{2,})(?::\d+)?(?:[/?#].*)?$/i.test(text)
+  ) {
+    return `https://${text}`;
+  }
+
+  return text;
+}
+
+export function hexColorToRgb(value) {
+  const normalized = normalizeHexColor(value);
+  if (!normalized) {
+    return null;
+  }
+  return {
+    r: parseInt(normalized.slice(1, 3), 16),
+    g: parseInt(normalized.slice(3, 5), 16),
+    b: parseInt(normalized.slice(5, 7), 16)
+  };
+}
+
+function rgbToHex(rgb) {
+  if (!rgb) {
+    return "";
+  }
+  const toHex = (channel) => {
+    const safe = Math.max(0, Math.min(255, Math.round(Number(channel) || 0)));
+    return safe.toString(16).padStart(2, "0");
+  };
+  return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+}
+
+export function blendHexColors(backgroundColor, overlayColor, alpha) {
+  const bg = hexColorToRgb(backgroundColor);
+  const fg = hexColorToRgb(overlayColor);
+  if (!bg || !fg) {
+    return normalizeHexColor(backgroundColor) || normalizeHexColor(overlayColor) || "";
+  }
+  const safeAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
+  return rgbToHex({
+    r: bg.r * (1 - safeAlpha) + fg.r * safeAlpha,
+    g: bg.g * (1 - safeAlpha) + fg.g * safeAlpha,
+    b: bg.b * (1 - safeAlpha) + fg.b * safeAlpha
+  });
+}
+
+function srgbChannelToLinear(channel) {
+  const value = channel / 255;
+  if (value <= 0.04045) {
+    return value / 12.92;
+  }
+  return Math.pow((value + 0.055) / 1.055, 2.4);
+}
+
+export function isHexColorDark(value) {
+  const rgb = hexColorToRgb(value);
+  if (!rgb) {
+    return true;
+  }
+  const luminance =
+    0.2126 * srgbChannelToLinear(rgb.r) +
+    0.7152 * srgbChannelToLinear(rgb.g) +
+    0.0722 * srgbChannelToLinear(rgb.b);
+  return luminance < 0.52;
+}
+
+function createCycleButtonColor(index, hueStep, saturation, lightness) {
+  const hue = (Math.round(index) * hueStep) % 360;
+  const hoverLightness = lightness > 52 ? Math.max(40, lightness - 11) : Math.min(82, lightness + 9);
+  return {
+    base: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    hover: `hsl(${hue}, ${saturation}%, ${hoverLightness}%)`
+  };
+}
+
+function createSolidButtonColor(baseColor) {
+  const normalized = normalizeHexColor(baseColor) || DEFAULT_BUTTON_COLOR_SOLID;
+  const hover = isHexColorDark(normalized)
+    ? blendHexColors(normalized, "#ffffff", 0.14)
+    : blendHexColors(normalized, "#000000", 0.12);
+  return {
+    base: normalized,
+    hover: hover || normalized
+  };
+}
+
+function getButtonColorPair(tab, group, buttonIndex) {
+  const defaults = getDefaultButtonColorOptions();
+  const mode = normalizeButtonColorMode(tab && tab.buttonColorMode);
+
+  if (mode === BUTTON_COLOR_MODE_CYCLE_CUSTOM) {
+    const hueStep = clampNumber(tab && tab.buttonCycleHueStep, 1, 180, defaults.buttonCycleHueStep);
+    const saturation = clampNumber(
+      tab && tab.buttonCycleSaturation,
+      0,
+      100,
+      defaults.buttonCycleSaturation
+    );
+    const lightness = clampNumber(
+      tab && tab.buttonCycleLightness,
+      0,
+      100,
+      defaults.buttonCycleLightness
+    );
+    return createCycleButtonColor(buttonIndex, hueStep, saturation, lightness);
+  }
+
+  if (mode === BUTTON_COLOR_MODE_SOLID_ALL) {
+    return createSolidButtonColor(tab && tab.buttonSolidColor);
+  }
+
+  if (mode === BUTTON_COLOR_MODE_SOLID_PER_GROUP) {
+    const groupColor = normalizeHexColor(group && group.buttonSolidColor);
+    const fallbackColor = normalizeHexColor(tab && tab.buttonSolidColor) || defaults.buttonSolidColor;
+    return createSolidButtonColor(groupColor || fallbackColor);
+  }
+
+  return createCycleButtonColor(
+    buttonIndex,
+    defaults.buttonCycleHueStep,
+    defaults.buttonCycleSaturation,
+    defaults.buttonCycleLightness
+  );
+}
+
+function normalizeMigrationTabs(inputTabs) {
+  const sourceTabs = Array.isArray(inputTabs) ? inputTabs : [];
+  const tabs = sourceTabs
+    .map((tab) => {
+      const id = makeSafeTabId(tab && (tab.id || tab.label));
+      const label = (tab && typeof tab.label === "string" ? tab.label.trim() : "") || id;
+      return { id, label };
+    })
+    .filter((tab) => tab.id.length > 0);
+
+  if (!tabs.some((tab) => tab.id === "external")) {
+    tabs.unshift({ id: "external", label: "External" });
+  }
+
+  if (!tabs.some((tab) => tab.id === "internal")) {
+    tabs.push({ id: "internal", label: "Internal" });
+  }
+
+  return tabs;
+}
+
+function detectTypeFromText(text) {
+  const source = (text || "").toString().toLowerCase();
+  if (!source) {
+    return "";
+  }
+
+  if (/extern|public|internet|wan/.test(source)) {
+    return "external";
+  }
+
+  if (/intern|local|lan|private/.test(source)) {
+    return "internal";
+  }
+
+  return "";
+}
+
+function looksLikePrivateHost(hostname) {
+  const host = (hostname || "").toLowerCase();
+  if (!host) {
+    return false;
+  }
+
+  if (host === "localhost" || host.endsWith(".local")) {
+    return true;
+  }
+
+  if (/^10\./.test(host) || /^192\.168\./.test(host)) {
+    return true;
+  }
+
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)) {
+    return true;
+  }
+
+  return false;
+}
+
+function detectTypeFromUrl(rawUrl) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    return "";
+  }
+
+  try {
+    const hostname = new URL(rawUrl.trim()).hostname;
+    return looksLikePrivateHost(hostname) ? "internal" : "external";
+  } catch (error) {
+    return "";
+  }
+}
+
+function getTabTypeById(tabs) {
+  const map = new Map();
+  tabs.forEach((tab) => {
+    const explicit = tab.id === "external" || tab.id === "internal" ? tab.id : "";
+    map.set(tab.id, explicit || detectTypeFromText(`${tab.id} ${tab.label}`));
+  });
+  return map;
+}
+
+function normalizeEntryLinks(entry, migrationTabs) {
+  const links = {};
+  const sourceLinks = entry && entry.links && typeof entry.links === "object" ? entry.links : {};
+  const tabTypeById = getTabTypeById(migrationTabs);
+
+  Object.keys(sourceLinks).forEach((key) => {
+    links[key] = typeof sourceLinks[key] === "string" ? sourceLinks[key].trim() : "";
+  });
+
+  if (typeof entry.external === "string" && !links.external) {
+    links.external = entry.external.trim();
+  }
+
+  if (typeof entry.internal === "string" && !links.internal) {
+    links.internal = entry.internal.trim();
+  }
+
+  Object.keys(links).forEach((key) => {
+    const value = links[key];
+    if (!value) {
+      return;
+    }
+
+    const detected =
+      key === "external" || key === "internal"
+        ? key
+        : tabTypeById.get(key) || detectTypeFromText(key);
+
+    if (detected && !links[detected]) {
+      links[detected] = value;
+    }
+  });
+
+  const unresolvedValues = Object.keys(links)
+    .filter((key) => key !== "external" && key !== "internal")
+    .map((key) => links[key])
+    .filter(Boolean);
+
+  unresolvedValues.forEach((value) => {
+    const detected = detectTypeFromUrl(value);
+    if (detected && !links[detected]) {
+      links[detected] = value;
+      return;
+    }
+
+    if (!links.external) {
+      links.external = value;
+      return;
+    }
+
+    if (!links.internal) {
+      links.internal = value;
+    }
+  });
+
+  if (!links.external) {
+    links.external = "";
+  }
+
+  if (!links.internal) {
+    links.internal = "";
+  }
+
+  return { external: links.external, internal: links.internal };
+}
+
+function uniqueId(rawValue, fallback, usedIds) {
+  const raw = rawValue == null ? "" : String(rawValue).trim();
+  const base = raw || fallback;
+  let candidate = base;
+  let suffix = 2;
+  while (usedIds.has(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
+function normalizeButtonEntry(entry, migrationTabs, fallbackId, usedEntryIds) {
+  return {
+    id: uniqueId(entry && entry.id, fallbackId, usedEntryIds),
+    name: entry && typeof entry.name === "string" ? entry.name : "New Button",
+    icon: entry && typeof entry.icon === "string" ? entry.icon : "",
+    iconData: entry && typeof entry.iconData === "string" ? entry.iconData : "",
+    iconMeta: entry && entry.iconMeta && typeof entry.iconMeta === "object"
+      ? {
+          provider: typeof entry.iconMeta.provider === "string" ? entry.iconMeta.provider : "",
+          reference: typeof entry.iconMeta.reference === "string" ? entry.iconMeta.reference : "",
+          license: typeof entry.iconMeta.license === "string" ? entry.iconMeta.license : "",
+          licenseUrl: typeof entry.iconMeta.licenseUrl === "string" ? entry.iconMeta.licenseUrl : "",
+          sourceUrl: typeof entry.iconMeta.sourceUrl === "string" ? entry.iconMeta.sourceUrl : ""
+        }
+      : null,
+    links: normalizeEntryLinks(entry || {}, migrationTabs)
+  };
+}
+
+function normalizeGroup(group, migrationTabs, groupIndex, usedGroupIds, usedEntryIds) {
+  const entries = Array.isArray(group && group.entries)
+    ? group.entries.map((entry, entryIndex) =>
+        normalizeButtonEntry(
+          entry,
+          migrationTabs,
+          `button-${groupIndex + 1}-${entryIndex + 1}`,
+          usedEntryIds
+        )
+      )
+    : [];
+
+  return {
+    id: uniqueId(group && group.id, `group-${groupIndex + 1}`, usedGroupIds),
+    title: group && typeof group.title === "string" ? group.title : "New Group",
+    groupEnd: Boolean(group && group.groupEnd),
+    buttonSolidColor: normalizeHexColor(group && group.buttonSolidColor),
+    entries
+  };
+}
+
+function normalizeThemePresetTheme(theme) {
+  const defaults = getDefaultButtonColorOptions();
+  return {
+    backgroundColor: normalizeHexColor(theme && theme.backgroundColor),
+    groupBackgroundColor: normalizeHexColor(theme && theme.groupBackgroundColor),
+    textColor: normalizeHexColor(theme && theme.textColor),
+    buttonTextColor: normalizeHexColor(theme && theme.buttonTextColor),
+    tabColor: normalizeHexColor(theme && theme.tabColor),
+    activeTabColor: normalizeHexColor(theme && theme.activeTabColor),
+    tabTextColor: normalizeHexColor(theme && theme.tabTextColor),
+    activeTabTextColor: normalizeHexColor(theme && theme.activeTabTextColor),
+    buttonColorMode: normalizeButtonColorMode(theme && theme.buttonColorMode),
+    buttonCycleHueStep: clampNumber(theme && theme.buttonCycleHueStep, 1, 180, defaults.buttonCycleHueStep),
+    buttonCycleSaturation: clampNumber(theme && theme.buttonCycleSaturation, 0, 100, defaults.buttonCycleSaturation),
+    buttonCycleLightness: clampNumber(theme && theme.buttonCycleLightness, 0, 100, defaults.buttonCycleLightness),
+    buttonSolidColor: normalizeHexColor(theme && theme.buttonSolidColor) || defaults.buttonSolidColor
+  };
+}
+
+function normalizeThemePreset(preset, fallbackIndex = 1) {
+  const name =
+    preset && typeof preset.name === "string" && preset.name.trim()
+      ? preset.name.trim()
+      : `Theme ${fallbackIndex}`;
+  return {
+    id: preset && preset.id ? String(preset.id) : createId("theme"),
+    name,
+    theme: normalizeThemePresetTheme(preset && preset.theme)
+  };
+}
+
+function normalizeTab(tab, migrationTabs, fallbackLabel) {
+  const usedGroupIds = new Set();
+  const usedEntryIds = new Set();
+  const groups = Array.isArray(tab && tab.groups)
+    ? tab.groups.map((group, index) =>
+        normalizeGroup(group, migrationTabs, index, usedGroupIds, usedEntryIds)
+      )
+    : [];
+  const themePresets = Array.isArray(tab && tab.themePresets)
+    ? tab.themePresets.map((preset, index) => normalizeThemePreset(preset, index + 1))
+    : [];
+
+  const id = tab && tab.id ? makeSafeTabId(tab.id) : createId("tab");
+  const labelSource =
+    tab && typeof tab.label === "string" && tab.label.trim()
+      ? tab.label.trim()
+      : fallbackLabel || "Tab";
+
+  return {
+    ...getDefaultButtonColorOptions(),
+    id,
+    label: labelSource,
+    showLinkModeToggle:
+      tab && Object.prototype.hasOwnProperty.call(tab, "showLinkModeToggle")
+        ? Boolean(tab.showLinkModeToggle)
+        : true,
+    enableInternalLinks:
+      tab && Object.prototype.hasOwnProperty.call(tab, "enableInternalLinks")
+        ? Boolean(tab.enableInternalLinks)
+        : false,
+    openLinksInNewTab:
+      tab && Object.prototype.hasOwnProperty.call(tab, "openLinksInNewTab")
+        ? Boolean(tab.openLinksInNewTab)
+        : true,
+    textColor: normalizeHexColor(tab && tab.textColor),
+    buttonTextColor: normalizeHexColor(tab && tab.buttonTextColor),
+    tabColor: normalizeHexColor(tab && tab.tabColor),
+    activeTabColor: normalizeHexColor(tab && tab.activeTabColor),
+    tabTextColor: normalizeHexColor(tab && tab.tabTextColor),
+    activeTabTextColor: normalizeHexColor(tab && tab.activeTabTextColor),
+    backgroundColor: normalizeHexColor(tab && tab.backgroundColor),
+    groupBackgroundColor: normalizeHexColor(tab && tab.groupBackgroundColor),
+    buttonColorMode: normalizeButtonColorMode(tab && tab.buttonColorMode),
+    buttonCycleHueStep: clampNumber(
+      tab && tab.buttonCycleHueStep,
+      1,
+      180,
+      DEFAULT_BUTTON_COLOR_CYCLE_HUE_STEP
+    ),
+    buttonCycleSaturation: clampNumber(
+      tab && tab.buttonCycleSaturation,
+      0,
+      100,
+      DEFAULT_BUTTON_COLOR_CYCLE_SATURATION
+    ),
+    buttonCycleLightness: clampNumber(
+      tab && tab.buttonCycleLightness,
+      0,
+      100,
+      DEFAULT_BUTTON_COLOR_CYCLE_LIGHTNESS
+    ),
+    buttonSolidColor: normalizeHexColor(tab && tab.buttonSolidColor) || DEFAULT_BUTTON_COLOR_SOLID,
+    themePresets,
+    groups
+  };
+}
+
+function normalizeTabs(config, migrationTabs) {
+  if (Array.isArray(config.dashboards) && config.dashboards.length) {
+    const usedIds = new Set();
+    return config.dashboards
+      .map((tab, index) => normalizeTab(tab, migrationTabs, `Tab ${index + 1}`))
+      .map((tab) => {
+        let id = tab.id || createId("tab");
+        let counter = 2;
+        while (usedIds.has(id)) {
+          id = `${tab.id}-${counter}`;
+          counter += 1;
+        }
+        usedIds.add(id);
+        return {
+          id,
+          label: tab.label,
+          showLinkModeToggle: tab.showLinkModeToggle,
+          enableInternalLinks: tab.enableInternalLinks,
+          openLinksInNewTab: tab.openLinksInNewTab,
+          textColor: tab.textColor,
+          buttonTextColor: tab.buttonTextColor,
+          tabColor: tab.tabColor,
+          activeTabColor: tab.activeTabColor,
+          tabTextColor: tab.tabTextColor,
+          activeTabTextColor: tab.activeTabTextColor,
+          backgroundColor: tab.backgroundColor,
+          groupBackgroundColor: tab.groupBackgroundColor,
+          buttonColorMode: tab.buttonColorMode,
+          buttonCycleHueStep: tab.buttonCycleHueStep,
+          buttonCycleSaturation: tab.buttonCycleSaturation,
+          buttonCycleLightness: tab.buttonCycleLightness,
+          buttonSolidColor: tab.buttonSolidColor,
+          themePresets: tab.themePresets,
+          groups: tab.groups
+        };
+      });
+  }
+
+  const legacyGroups = Array.isArray(config.groups) ? config.groups : [];
+  return [
+    normalizeTab(
+      {
+        id: "dashboard-1",
+        label: "Startpage 1",
+        groups: legacyGroups
+      },
+      migrationTabs,
+      "Startpage 1"
+    )
+  ];
+}
+
+function normalizeGlobalThemePresets(config, tabs) {
+  const hasRootThemePresets =
+    Boolean(config) && Object.prototype.hasOwnProperty.call(config, "themePresets");
+  const sourcePresets = hasRootThemePresets
+    ? Array.isArray(config.themePresets)
+      ? config.themePresets
+      : []
+    : tabs.flatMap((tab) =>
+        Array.isArray(tab && tab.themePresets) ? tab.themePresets : []
+      );
+
+  const seenIds = new Set();
+  const seenNames = new Set();
+  const deduped = [];
+  sourcePresets.forEach((preset, index) => {
+    const normalized = normalizeThemePreset(preset, index + 1);
+    const normalizedId = (normalized.id || "").trim().toLowerCase();
+    const normalizedName = (normalized.name || "").trim().toLowerCase();
+    if ((normalizedId && seenIds.has(normalizedId)) || (normalizedName && seenNames.has(normalizedName))) {
+      return;
+    }
+    if (normalizedId) {
+      seenIds.add(normalizedId);
+    }
+    if (normalizedName) {
+      seenNames.add(normalizedName);
+    }
+    deduped.push(normalized);
+  });
+  return deduped;
+}
+
+function normalizeConfigTheme(inputTheme, tabs) {
+  // If config.theme already exists, use it; otherwise migrate from first tab or use empty
+  if (inputTheme && typeof inputTheme === "object") {
+    return normalizeThemePresetTheme(inputTheme);
+  }
+  // Migration: copy theme fields from first tab
+  const firstTab = Array.isArray(tabs) && tabs.length ? tabs[0] : {};
+  return normalizeThemePresetTheme(firstTab);
+}
+
+function normalizeConfig(inputConfig) {
+  const config = inputConfig && typeof inputConfig === "object" ? inputConfig : {};
+  const migrationTabs = normalizeMigrationTabs(config.tabs);
+  const tabs = normalizeTabs(config, migrationTabs);
+  const themePresets = normalizeGlobalThemePresets(config, tabs);
+  const theme = normalizeConfigTheme(config.theme, tabs);
+
+  return {
+    title: normalizeTitle(config.title),
+    theme,
+    themePresets,
+    dashboards: tabs
+  };
+}
+
+async function requestJSON(path, options = {}) {
+  const init = {
+    method: options.method || "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(options.headers || {})
+    },
+    body: options.body
+  };
+
+  if (init.body && !init.headers["Content-Type"]) {
+    init.headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(path, init);
+  const rawText = await response.text();
+
+  let payload = {};
+  if (rawText) {
+    try {
+      payload = JSON.parse(rawText);
+    } catch (error) {
+      payload = { message: rawText };
+    }
+  }
+
+  if (!response.ok) {
+    const message = payload && payload.message ? payload.message : `Request failed (${response.status})`;
+    const err = new Error(message);
+    err.status = response.status;
+    err.payload = payload;
+    throw err;
+  }
+
+  return payload;
+}
+
+async function fetchDefaultConfig() {
+  const response = await fetch("/startpage-default-config.json", {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load default startpage config.");
+  }
+
+  return normalizeConfig(await response.json());
+}
+
+async function getConfig() {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const payload = await requestJSON("/api/config", { method: "GET" });
+      return normalizeConfig(payload.config);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+  }
+  throw lastError || new Error("Failed to load startpage config.");
+}
+
+async function saveConfig(config) {
+  const normalized = normalizeConfig(config);
+  const payload = await requestJSON("/api/config", {
+    method: "POST",
+    body: JSON.stringify({ config: normalized })
+  });
+  return normalizeConfig(payload.config);
+}
+
+async function login(username, password) {
+  return requestJSON("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password })
+  });
+}
+
+async function bootstrapAdmin(username, password) {
+  return requestJSON("/api/auth/bootstrap", {
+    method: "POST",
+    body: JSON.stringify({ username, password })
+  });
+}
+
+async function logout() {
+  return requestJSON("/api/logout", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
+async function getAuthStatus() {
+  return requestJSON("/api/auth/status", { method: "GET" });
+}
+
+async function changePassword(currentPassword, newPassword) {
+  return requestJSON("/api/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword })
+  });
+}
+
+async function changeUsername(currentPassword, newUsername) {
+  return requestJSON("/api/auth/change-username", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newUsername })
+  });
+}
+
+async function searchIcons(query, limit = 20, context = {}) {
+  const trimmed = (query || "").toString().trim();
+  const clampedLimit = Math.max(1, Math.min(Number(limit) || 20, 30));
+  const params = new URLSearchParams({
+    q: trimmed,
+    limit: String(clampedLimit)
+  });
+  if (context?.externalUrl) params.set("externalUrl", String(context.externalUrl));
+  if (context?.internalUrl) params.set("internalUrl", String(context.internalUrl));
+  return requestJSON(`/api/icons/search?${params.toString()}`, {
+    method: "GET"
+  });
+}
+
+async function listIconSources() {
+  return requestJSON("/api/icons/sources", { method: "GET" });
+}
+
+async function getIconPreferences() {
+  return requestJSON("/api/icons/preferences", { method: "GET" });
+}
+
+async function saveIconPreferences(enabledProviders) {
+  return requestJSON("/api/icons/preferences", {
+    method: "POST",
+    body: JSON.stringify({
+      enabledProviders: Array.isArray(enabledProviders) ? enabledProviders : []
+    })
+  });
+}
+
+async function importIcon(provider, reference, format = "svg") {
+  return requestJSON("/api/icons/import", {
+    method: "POST",
+    body: JSON.stringify({
+      provider: String(provider || ""),
+      reference: String(reference || ""),
+      format: format === "png" ? "png" : "svg"
+    })
+  });
+}
+
+async function importSelfhstIcon(reference, format = "svg") {
+  return requestJSON("/api/icons/import-selfhst", {
+    method: "POST",
+    body: JSON.stringify({
+      reference,
+      format: format === "png" ? "png" : "svg"
+    })
+  });
+}
+
+async function importIconifyIcon(name, format = "svg", source = "") {
+  return requestJSON("/api/icons/import-iconify", {
+    method: "POST",
+    body: JSON.stringify({
+      name,
+      source: (source || "").toString(),
+      format: format === "png" ? "png" : "svg"
+    })
+  });
+}
+
+function getLinkMode() {
+  return normalizeLinkMode(localStorage.getItem(LINK_MODE_KEY));
+}
+
+function setLinkMode(mode) {
+  localStorage.setItem(LINK_MODE_KEY, normalizeLinkMode(mode));
+}
+
+function getActiveStartpageId() {
+  return localStorage.getItem(ACTIVE_STARTPAGE_KEY) || "";
+}
+
+function setActiveStartpageId(tabId) {
+  if (!tabId) {
+    localStorage.removeItem(ACTIVE_STARTPAGE_KEY);
+    return;
+  }
+  localStorage.setItem(ACTIVE_STARTPAGE_KEY, tabId);
+}
+
+async function fetchVersion() {
+  try {
+    const payload = await requestJSON('/api/version', { method: 'GET' });
+    return payload?.version || '';
+  } catch {
+    return '';
+  }
+}
+
+export const StartpageCommon = {
+  clone,
+  createId,
+  makeSafeTabId,
+  normalizeHexColor,
+  normalizeButtonColorMode,
+  normalizeExternalLinkHref,
+  getDefaultButtonColorOptions,
+  getButtonColorPair,
+  normalizeConfig,
+  getConfig,
+  saveConfig,
+  fetchDefaultConfig,
+  login,
+  bootstrapAdmin,
+  logout,
+  getAuthStatus,
+  changePassword,
+  changeUsername,
+  listIconSources,
+  getIconPreferences,
+  saveIconPreferences,
+  searchIcons,
+  importIcon,
+  importSelfhstIcon,
+  importIconifyIcon,
+  getLinkMode,
+  setLinkMode,
+  getActiveStartpageId,
+  setActiveStartpageId,
+  fetchVersion
+};
+
+
+export const DEFAULT_THEME = {
+  backgroundColor: '#0f172a',
+  groupBackgroundColor: '#111827',
+  textColor: '#f8fafc',
+  buttonTextColor: '#0f172a',
+  tabColor: '#1e293b',
+  activeTabColor: '#2563eb',
+  tabTextColor: '#cbd5e1',
+  activeTabTextColor: '#ffffff'
+};
+
+export function normalizeHexColorLoose(value) {
+  const text = (value || '').toString().trim();
+  if (!text) return '';
+  return normalizeHexColor(text.startsWith('#') ? text : '#' + text);
+}
+
+export function clampInteger(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(numeric)));
+}
+
+export function iconSource(buttonEntry) {
+  if (buttonEntry && buttonEntry.iconData) return buttonEntry.iconData;
+  if (buttonEntry && buttonEntry.icon) return 'icons/' + buttonEntry.icon;
+  return '';
+}
+
+export function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Unable to read icon file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+export default StartpageCommon;
