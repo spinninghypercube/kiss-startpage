@@ -30,6 +30,8 @@
   let searchLoading = false;
   let searchTimer = null;
   let searchSeq = 0;
+  let selectedIconKey = '';
+  let importingIconKey = '';
   let iconProviders = [];
   let iconifyCollections = [];
   let enabledProviders = [];
@@ -60,6 +62,8 @@
     searchStatusTone = 'muted';
     searchStatus = initialSearchPrompt;
     searchLoading = false;
+    selectedIconKey = iconMeta?.provider && iconMeta?.reference ? iconResultKey(iconMeta) : '';
+    importingIconKey = '';
     searchSeq += 1;
     clearSearchTimer();
     if (uploadEl) uploadEl.value = '';
@@ -192,29 +196,39 @@
   async function importIcon(item) {
     const reference = String(item?.reference || '').trim();
     const provider = String(item?.provider || '').trim();
+    const nextIconKey = iconResultKey(item);
+    importingIconKey = nextIconKey;
     searchStatusTone = 'muted';
     searchStatus = `Importing "${reference}" from ${providerLabel(provider)}...`;
+    try {
+      const payload = await StartpageCommon.importIcon(provider, reference, 'svg');
 
-    const payload = await StartpageCommon.importIcon(provider, reference, 'svg');
-
-    iconData = payload?.iconData || '';
-    if (payload?.icon) {
-      icon = payload.icon;
-    } else if (reference) {
-      icon = `${reference}.svg`;
+      iconData = payload?.iconData || '';
+      if (payload?.icon) {
+        icon = payload.icon;
+      } else if (reference) {
+        icon = `${reference}.svg`;
+      }
+      iconMeta = {
+        provider,
+        reference: payload?.reference || reference,
+        license: payload?.license || item?.license || '',
+        licenseUrl: payload?.licenseUrl || item?.licenseUrl || '',
+        sourceUrl: payload?.sourceUrl || item?.sourceUrl || ''
+      };
+      selectedIconKey = iconResultKey(iconMeta);
+      clearIconData = false;
+      if (uploadEl) uploadEl.value = '';
+      uploadedFileName = '';
+      searchStatusTone = 'has-text-success';
+      searchStatus = `Selected ${payload?.name || reference}. Click Save to store it in this button.`;
+    } finally {
+      importingIconKey = '';
     }
-    iconMeta = {
-      provider,
-      reference: payload?.reference || reference,
-      license: payload?.license || item?.license || '',
-      licenseUrl: payload?.licenseUrl || item?.licenseUrl || '',
-      sourceUrl: payload?.sourceUrl || item?.sourceUrl || ''
-    };
-    clearIconData = false;
-    if (uploadEl) uploadEl.value = '';
-    uploadedFileName = '';
-    searchStatusTone = 'has-text-success';
-    searchStatus = `Imported ${payload?.name || reference}. Click Save to store it locally in this button.`;
+  }
+
+  function iconResultKey(item) {
+    return `${String(item?.provider || '').trim()}::${String(item?.reference || '').trim()}`;
   }
 
   async function handleUploadChange(event) {
@@ -231,6 +245,7 @@
       const dataUrl = await readFileAsDataUrl(file);
       iconData = dataUrl;
       iconMeta = null;
+      selectedIconKey = '';
       clearIconData = false;
     } catch (error) {
       console.error(error);
@@ -371,7 +386,7 @@
           <label class="label" for="entryIconUpload">Upload Icon</label>
           <input id="entryIconUpload" class="input" type="file" accept="image/*" bind:this={uploadEl} on:change={handleUploadChange} />
           <label class="checkbox mt-2">
-            <input id="entryClearIconData" type="checkbox" bind:checked={clearIconData} />
+            <input id="entryClearIconData" type="checkbox" bind:checked={clearIconData} on:change={() => { if (clearIconData) selectedIconKey = ''; }} />
             Clear embedded uploaded icon
           </label>
         </div>
@@ -422,8 +437,18 @@
                 </div>
                 {#if Array.isArray(group.items) && group.items.length}
                   <div class="icon-search-results">
-                    {#each group.items as item}
-                      <button type="button" class="icon-search-result" title={`Use ${item.name}`} aria-label={`Use icon ${item.name}`} on:click={() => importIcon(item).catch((error) => { console.error(error); searchStatusTone = 'has-text-danger'; searchStatus = 'Failed to import icon.'; showMessage(error.message || 'Failed to import icon.', 'is-danger'); })}>
+                    {#each group.items as item (iconResultKey(item))}
+                      <button
+                        type="button"
+                        class="icon-search-result"
+                        class:is-selected={selectedIconKey === iconResultKey(item)}
+                        class:is-importing={importingIconKey === iconResultKey(item)}
+                        title={selectedIconKey === iconResultKey(item) ? `${item.name} selected` : `Use ${item.name}`}
+                        aria-label={`Use icon ${item.name}`}
+                        aria-pressed={selectedIconKey === iconResultKey(item)}
+                        disabled={Boolean(importingIconKey)}
+                        on:click={() => importIcon(item).catch((error) => { console.error(error); searchStatusTone = 'has-text-danger'; searchStatus = 'Failed to import icon.'; showMessage(error.message || 'Failed to import icon.', 'is-danger'); })}
+                      >
                         <span class="icon-search-result-media">
                           {#if item.previewUrl}
                             <img src={item.previewUrl} alt="" loading="lazy" />
@@ -435,6 +460,11 @@
                           <span class="icon-search-result-name">{item.name || item.reference || 'Icon'}</span>
                           <span class="icon-search-result-sub">{[item.reference, item.category, item.license].filter(Boolean).join(' · ')}</span>
                         </span>
+                        {#if selectedIconKey === iconResultKey(item)}
+                          <span class="icon-search-result-selection" aria-hidden="true">✓ Selected</span>
+                        {:else if importingIconKey === iconResultKey(item)}
+                          <span class="icon-search-result-selection" aria-hidden="true">Selecting…</span>
+                        {/if}
                       </button>
                     {/each}
                   </div>

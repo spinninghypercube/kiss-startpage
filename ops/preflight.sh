@@ -64,6 +64,11 @@ if command -v go >/dev/null 2>&1; then
 fi
 if command -v node >/dev/null 2>&1; then
   echo "[OK] node $(node --version)"
+  node_version="$(node --version | sed 's/^v//')"
+  if [[ "$(printf '%s\n%s\n' '20.19.0' "$node_version" | sort -V | head -1)" != "20.19.0" ]]; then
+    echo "[FAIL] Node.js 20.19.0 or newer is required" >&2
+    fail=1
+  fi
 fi
 if command -v npm >/dev/null 2>&1; then
   echo "[OK] npm $(npm --version)"

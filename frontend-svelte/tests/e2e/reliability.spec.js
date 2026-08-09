@@ -37,6 +37,34 @@ test('all groups survive repeated tab switches', async ({ page }) => {
   }
 });
 
+test('delayed saves cannot overwrite a newer editor change', async ({ page }) => {
+  await authenticateEditor(page);
+  let saveCount = 0;
+  await page.route('**/api/config', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.continue();
+      return;
+    }
+    saveCount += 1;
+    if (saveCount === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+    await route.continue();
+  });
+
+  await page.goto('/edit');
+  await expect(page.getByRole('button', { name: 'Log Out' })).toBeVisible();
+  const title = page.locator('#pageTitleInput');
+  await title.fill('Delayed first title');
+  await title.press('Enter');
+  await title.fill('Newest title wins');
+  await title.press('Enter');
+
+  await expect.poll(() => saveCount).toBe(2);
+  await page.reload();
+  await expect(title).toHaveValue('Newest title wins');
+});
+
 test('an API failure shows Retry and never renders demo data', async ({ page }) => {
   let failConfig = true;
   await page.route('**/api/config', async (route) => {
@@ -63,6 +91,21 @@ test('an API failure shows Retry and never renders demo data', async ({ page }) 
 
 test('the editor searches enabled providers without dropdowns and persists the selection', async ({ page }) => {
   await authenticateEditor(page);
+  await page.route('**/api/icons/import', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        provider: 'iconify',
+        name: 'Home',
+        reference: 'lucide:home',
+        icon: 'lucide-home.svg',
+        iconData: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=',
+        license: 'ISC'
+      })
+    });
+  });
   await page.route('**/api/icons/search?**', async (route) => {
     const requestUrl = new URL(route.request().url());
     if (!requestUrl.searchParams.get('q') && requestUrl.searchParams.get('externalUrl')) {
@@ -180,6 +223,16 @@ test('the editor searches enabled providers without dropdowns and persists the s
     maxHeight: 'none',
     overflowY: 'visible'
   });
+
+  const homeIcon = page.getByRole('button', { name: 'Use icon Home' });
+  await homeIcon.click();
+  await expect(homeIcon).toHaveAttribute('aria-pressed', 'true');
+  await expect(homeIcon).toHaveClass(/is-selected/);
+  await expect(homeIcon).toContainText('✓ Selected');
+  await expect(page.locator('#entryIconSearchStatus')).toHaveText('Selected Home. Click Save to store it in this button.');
+
+  await page.locator('#entryIconSearchInput').fill('home ');
+  await expect(homeIcon).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('admin action buttons follow light and dark theme presets', async ({ page }) => {

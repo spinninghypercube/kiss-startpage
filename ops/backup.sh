@@ -12,6 +12,7 @@ Usage: $0 [--data-dir DIR] [--out-dir DIR]
 Creates a timestamped tar.gz backup containing:
 - dashboard-config.json
 - users.json
+- sessions.json
 - private-icons/ (if present)
 USAGE
 }
@@ -32,7 +33,7 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 found=0
-for file in dashboard-config.json users.json; do
+for file in dashboard-config.json users.json sessions.json; do
   if [[ -f "$DATA_DIR/$file" ]]; then
     cp -a "$DATA_DIR/$file" "$TMP_DIR/$file"
     found=1

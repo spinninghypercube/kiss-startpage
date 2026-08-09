@@ -8,7 +8,7 @@ BIND_ADDR="0.0.0.0"
 INSTALL_DIR="/opt/kiss-startpage"
 DATA_DIR="/var/lib/kiss-startpage"
 GO_MIN_VERSION="1.24.0"
-NODE_MIN_MAJOR="18"
+NODE_MIN_VERSION="20.19.0"
 NODE_FALLBACK_MAJOR="20"
 SUPPORTED_DISTRO_HINT="Debian/Ubuntu family (ID or ID_LIKE includes debian/ubuntu) with apt-get"
 
@@ -91,12 +91,12 @@ version_ge() {
   [[ "$(printf '%s\n%s\n' "$want" "$have" | sort -V | head -1)" == "$want" ]]
 }
 
-node_major() {
+node_version() {
   if ! command -v node >/dev/null 2>&1; then
-    echo 0
+    echo "0.0.0"
     return
   fi
-  node --version | sed 's/^v//' | cut -d. -f1
+  node --version | sed 's/^v//'
 }
 
 go_version() {
@@ -108,12 +108,12 @@ go_version() {
 }
 
 install_node_if_needed() {
-  local major
-  major="$(node_major)"
-  if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= NODE_MIN_MAJOR )); then
+  local have
+  have="$(node_version)"
+  if version_ge "$have" "$NODE_MIN_VERSION"; then
     return
   fi
-  echo "[bootstrap] Installing Node.js ${NODE_FALLBACK_MAJOR}.x (required for frontend build)"
+  echo "[bootstrap] Installing Node.js ${NODE_FALLBACK_MAJOR}.x (required Node >= ${NODE_MIN_VERSION})"
   curl -fsSL "https://deb.nodesource.com/setup_${NODE_FALLBACK_MAJOR}.x" | bash -
   apt-get install -y nodejs
 }

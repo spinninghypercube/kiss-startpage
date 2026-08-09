@@ -16,6 +16,14 @@ Your homelab start page, built in the browser.
 
 ## Quick Start
 
+Requirements by method:
+
+- Windows: Windows 10/11 or Windows Server with `winget` when Git, Node.js,
+  Go, or NSSM still needs to be installed.
+- Linux systemd: Debian or Ubuntu; the installer installs its build tools.
+- Linux Docker: Git, curl, Docker, and Docker Compose must already work for
+  the current user (or through `sudo`).
+
 ### Windows
 
 [Download Windows installer (.exe)](https://github.com/spinninghypercube/kiss-startpage/releases/download/windows-installer-latest/kiss-startpage-bootstrap.exe)
@@ -82,6 +90,14 @@ Linux Docker (default install):
 curl -fsSL https://raw.githubusercontent.com/spinninghypercube/kiss-startpage/main/ops/bootstrap-docker.sh | bash
 ```
 
+Linux Docker from a downloaded checkout:
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+curl -fsS http://127.0.0.1:8788/health
+```
+
 ## Updating
 
 Update by rerunning the installer you used initially:
@@ -130,6 +146,8 @@ Windows EXE update notes:
 
 ## Development
 
+Development requires Go 1.24+ and Node.js 20.19+.
+
 Use two terminals for live development:
 
 ```bash
@@ -151,7 +169,9 @@ Before publishing a change, run backend tests, frontend tests, and the local smo
 bash maintainer/smoke-local.sh
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for component and data boundaries and [RELEASING.md](RELEASING.md) for the lightweight GitHub/release rules.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the maintenance rules,
+[ARCHITECTURE.md](ARCHITECTURE.md) for component and data boundaries, and
+[RELEASING.md](RELEASING.md) for the production-first release procedure.
 
 ## License
 

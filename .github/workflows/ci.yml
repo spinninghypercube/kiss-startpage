@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "20.19"
           cache: npm
           cache-dependency-path: frontend-svelte/package-lock.json
 
@@ -65,3 +65,42 @@ jobs:
 
       - name: Run application smoke test
         run: bash maintainer/smoke-local.sh
+
+      - name: Build Docker image
+        run: docker build -t kiss-startpage-ci .
+
+  validate-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Parse PowerShell installer
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'ops/bootstrap-windows.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw 'PowerShell installer contains syntax errors.'
+          }
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24.x"
+          cache: false
+
+      - name: Cross-build Windows backend
+        working-directory: backend-go
+        shell: pwsh
+        run: |
+          $env:GOOS = 'windows'
+          $env:GOARCH = 'amd64'
+          go build -buildvcs=false -o "$env:RUNNER_TEMP/kissdash-go.exe" .

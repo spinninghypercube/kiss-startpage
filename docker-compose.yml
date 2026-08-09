@@ -5,11 +5,15 @@ services:
       dockerfile: Dockerfile
     image: kiss-startpage:local
     ports:
-      - "${KISS_PORT:-8788}:8788"
+      - "${STARTPAGE_PUBLIC_PORT:-8788}:8788"
+    environment:
+      DASH_SESSION_TTL: "${DASH_SESSION_TTL:-315360000}"
+      DASH_ICON_INDEX_TTL: "${DASH_ICON_INDEX_TTL:-21600}"
+      DASH_ICON_SEARCH_MAX_LIMIT: "${DASH_ICON_SEARCH_MAX_LIMIT:-30}"
+      TZ: "${TZ:-UTC}"
     volumes:
       - startpage_data:/data
     restart: unless-stopped
 
 volumes:
   startpage_data:
-

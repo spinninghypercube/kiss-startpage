@@ -106,37 +106,25 @@ func (a *app) getUserIconProviders(username string) []string {
 }
 
 func (a *app) saveUserIconProviders(username string, providers []string) error {
-	a.fileMu.Lock()
-	defer a.fileMu.Unlock()
-	value, ok := readJSONAny(a.cfg.UsersFile)
-	if !ok {
-		return fmt.Errorf("failed to read users")
-	}
-	payload, ok := value.(map[string]any)
-	if !ok {
-		return fmt.Errorf("invalid users payload")
-	}
-	users, _ := payload["users"].(map[string]any)
-	if users == nil {
-		return fmt.Errorf("invalid users payload")
-	}
-	record, _ := users[username].(map[string]any)
-	if record == nil {
-		return fmt.Errorf("user not found")
-	}
-	preferences, _ := record["preferences"].(map[string]any)
-	if preferences == nil {
-		preferences = map[string]any{}
-	}
-	stored := make([]any, 0, len(providers))
-	for _, provider := range providers {
-		stored = append(stored, provider)
-	}
-	preferences["enabledIconProviders"] = stored
-	record["preferences"] = preferences
-	users[username] = record
-	payload["users"] = users
-	return writeJSONAtomic(a.cfg.UsersFile, payload)
+	return a.updateUsersPayload(func(payload map[string]any) error {
+		users := usersMap(payload)
+		record, _ := users[username].(map[string]any)
+		if record == nil {
+			return fmt.Errorf("user not found")
+		}
+		preferences, _ := record["preferences"].(map[string]any)
+		if preferences == nil {
+			preferences = map[string]any{}
+		}
+		stored := make([]any, 0, len(providers))
+		for _, provider := range providers {
+			stored = append(stored, provider)
+		}
+		preferences["enabledIconProviders"] = stored
+		record["preferences"] = preferences
+		users[username] = record
+		return nil
+	})
 }
 
 func (a *app) handleGetIconPreferences(w http.ResponseWriter, username string) {

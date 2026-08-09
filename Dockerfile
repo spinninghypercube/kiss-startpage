@@ -1,4 +1,4 @@
-FROM node:20-bookworm AS frontend-build
+FROM node:20.19-bookworm AS frontend-build
 WORKDIR /src/frontend-svelte
 COPY frontend-svelte/package.json frontend-svelte/package-lock.json ./
 RUN npm ci
@@ -8,11 +8,11 @@ RUN npm run build
 FROM golang:1.24-bookworm AS backend-build
 WORKDIR /src/backend-go
 COPY backend-go/go.mod ./
-COPY backend-go/main.go ./
+COPY backend-go/*.go ./
 RUN CGO_ENABLED=0 go build -buildvcs=false -o /out/kissdash-go .
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY startpage-default-config.json /app/startpage-default-config.json
@@ -25,9 +25,11 @@ ENV DASH_DATA_DIR=/data
 ENV DASH_PRIVATE_ICONS_DIR=/data/private-icons
 ENV DASH_DEFAULT_CONFIG=/app/startpage-default-config.json
 ENV DASH_APP_ROOT=/app/frontend-svelte/dist
+ENV DASH_SESSION_TTL=315360000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -fsS http://127.0.0.1:8788/health || exit 1
 
 EXPOSE 8788
 VOLUME ["/data"]
 
 CMD ["sh", "-lc", "mkdir -p \"$DASH_DATA_DIR\" \"$DASH_PRIVATE_ICONS_DIR\" && exec /app/backend-go/kissdash-go"]
-

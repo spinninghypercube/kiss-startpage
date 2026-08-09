@@ -10,7 +10,7 @@ usage() {
   cat <<USAGE
 Usage: $0 --backup FILE [--data-dir DIR] [--restart-service] [--service-name NAME]
 
-Restores dashboard-config.json, users.json, and private-icons/ from a backup archive.
+Restores dashboard-config.json, users.json, sessions.json, and private-icons/ from a backup archive.
 Existing files are backed up in-place before restore.
 USAGE
 }
@@ -44,7 +44,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 tar -xzf "$BACKUP_FILE" -C "$TMP_DIR"
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
-for file in dashboard-config.json users.json; do
+for file in dashboard-config.json users.json sessions.json; do
   if [[ -f "$TMP_DIR/$file" ]]; then
     if [[ -f "$DATA_DIR/$file" ]]; then
       cp -a "$DATA_DIR/$file" "$DATA_DIR/${file}.pre-restore-${STAMP}.bak"

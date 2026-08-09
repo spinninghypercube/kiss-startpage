@@ -1,3 +1,5 @@
+import { normalizeHexColor, normalizeTheme } from './theme.js';
+
 const LINK_MODE_KEY = "homelabStartpageLinkMode";
 const ACTIVE_STARTPAGE_KEY = "homelabStartpageActiveTab";
 const BUTTON_COLOR_MODE_CYCLE_DEFAULT = "cycle-default";
@@ -37,15 +39,6 @@ function normalizeTitle(value) {
 
   const trimmed = value.trim();
   return trimmed || "KISS Startpage";
-}
-
-export function normalizeHexColor(value) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  const trimmed = value.trim();
-  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : "";
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -432,22 +425,7 @@ function normalizeGroup(group, migrationTabs, groupIndex, usedGroupIds, usedEntr
 }
 
 function normalizeThemePresetTheme(theme) {
-  const defaults = getDefaultButtonColorOptions();
-  return {
-    backgroundColor: normalizeHexColor(theme && theme.backgroundColor),
-    groupBackgroundColor: normalizeHexColor(theme && theme.groupBackgroundColor),
-    textColor: normalizeHexColor(theme && theme.textColor),
-    buttonTextColor: normalizeHexColor(theme && theme.buttonTextColor),
-    tabColor: normalizeHexColor(theme && theme.tabColor),
-    activeTabColor: normalizeHexColor(theme && theme.activeTabColor),
-    tabTextColor: normalizeHexColor(theme && theme.tabTextColor),
-    activeTabTextColor: normalizeHexColor(theme && theme.activeTabTextColor),
-    buttonColorMode: normalizeButtonColorMode(theme && theme.buttonColorMode),
-    buttonCycleHueStep: clampNumber(theme && theme.buttonCycleHueStep, 1, 180, defaults.buttonCycleHueStep),
-    buttonCycleSaturation: clampNumber(theme && theme.buttonCycleSaturation, 0, 100, defaults.buttonCycleSaturation),
-    buttonCycleLightness: clampNumber(theme && theme.buttonCycleLightness, 0, 100, defaults.buttonCycleLightness),
-    buttonSolidColor: normalizeHexColor(theme && theme.buttonSolidColor) || defaults.buttonSolidColor
-  };
+  return normalizeTheme(theme || {});
 }
 
 function normalizeThemePreset(preset, fallbackIndex = 1) {
@@ -795,27 +773,6 @@ async function importIcon(provider, reference, format = "svg") {
   });
 }
 
-async function importSelfhstIcon(reference, format = "svg") {
-  return requestJSON("/api/icons/import-selfhst", {
-    method: "POST",
-    body: JSON.stringify({
-      reference,
-      format: format === "png" ? "png" : "svg"
-    })
-  });
-}
-
-async function importIconifyIcon(name, format = "svg", source = "") {
-  return requestJSON("/api/icons/import-iconify", {
-    method: "POST",
-    body: JSON.stringify({
-      name,
-      source: (source || "").toString(),
-      format: format === "png" ? "png" : "svg"
-    })
-  });
-}
-
 function getLinkMode() {
   return normalizeLinkMode(localStorage.getItem(LINK_MODE_KEY));
 }
@@ -869,8 +826,6 @@ export const StartpageCommon = {
   saveIconPreferences,
   searchIcons,
   importIcon,
-  importSelfhstIcon,
-  importIconifyIcon,
   getLinkMode,
   setLinkMode,
   getActiveStartpageId,
@@ -878,29 +833,6 @@ export const StartpageCommon = {
   fetchVersion
 };
 
-
-export const DEFAULT_THEME = {
-  backgroundColor: '#0f172a',
-  groupBackgroundColor: '#111827',
-  textColor: '#f8fafc',
-  buttonTextColor: '#0f172a',
-  tabColor: '#1e293b',
-  activeTabColor: '#2563eb',
-  tabTextColor: '#cbd5e1',
-  activeTabTextColor: '#ffffff'
-};
-
-export function normalizeHexColorLoose(value) {
-  const text = (value || '').toString().trim();
-  if (!text) return '';
-  return normalizeHexColor(text.startsWith('#') ? text : '#' + text);
-}
-
-export function clampInteger(value, min, max, fallback) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return fallback;
-  return Math.min(max, Math.max(min, Math.round(numeric)));
-}
 
 export function iconSource(buttonEntry) {
   if (buttonEntry && buttonEntry.iconData) return buttonEntry.iconData;
@@ -920,5 +852,7 @@ export function readFileAsDataUrl(file) {
 export function ensureArray(value) {
   return Array.isArray(value) ? value : [];
 }
+
+export { normalizeHexColor };
 
 export default StartpageCommon;

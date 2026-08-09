@@ -64,14 +64,20 @@ PRIVATE_ICONS_DIR="${DATA_DIR%/}/private-icons"
 ENV_FILE="/etc/default/${SERVICE_NAME}"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
-for cmd in go node npm curl; do
+for cmd in go node npm curl rsync; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing required command: $cmd" >&2
     exit 1
   fi
 done
 
-mkdir -p "$INSTALL_DIR" "$CURRENT_DIR" "$DATA_DIR" "$PRIVATE_ICONS_DIR"
+NODE_VERSION="$(node --version | sed 's/^v//')"
+if [[ "$(printf '%s\n%s\n' '20.19.0' "$NODE_VERSION" | sort -V | head -1)" != "20.19.0" ]]; then
+  echo "Node.js 20.19.0 or newer is required (found ${NODE_VERSION})." >&2
+  exit 1
+fi
+
+mkdir -p "$INSTALL_DIR" "$DATA_DIR" "$PRIVATE_ICONS_DIR"
 
 if ! getent group "$SERVICE_GROUP" >/dev/null; then
   groupadd --system "$SERVICE_GROUP"
@@ -81,54 +87,42 @@ if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
   useradd --system --no-create-home --gid "$SERVICE_GROUP" --shell /usr/sbin/nologin "$SERVICE_USER"
 fi
 
-if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete \
-    --exclude '.git' \
-    --exclude '.gitignore' \
-    --exclude 'frontend-svelte/node_modules' \
-    --exclude 'frontend-svelte/dist' \
-    --exclude 'frontend-svelte/.svelte-kit' \
-    --exclude 'backend-go/kissdash-go' \
-    --exclude 'backend/__pycache__' \
-    --exclude '__pycache__' \
-    "$ROOT_DIR/" "$CURRENT_DIR/"
-else
-  echo "[WARN] rsync not found; using cp -a (stale files may remain on upgrades)"
-  cp -a "$ROOT_DIR/." "$CURRENT_DIR/"
-  rm -rf \
-    "$CURRENT_DIR/.git" \
-    "$CURRENT_DIR/backend/__pycache__" \
-    "$CURRENT_DIR/frontend-svelte/node_modules" \
-    "$CURRENT_DIR/frontend-svelte/dist" \
-    "$CURRENT_DIR/frontend-svelte/.svelte-kit" \
-    "$CURRENT_DIR/backend-go/kissdash-go" || true
-fi
+BUILD_DIR="$(mktemp -d "${INSTALL_DIR%/}/.build.XXXXXX")"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+mkdir -p "$BUILD_DIR/source/frontend-svelte" "$BUILD_DIR/source/backend-go" "$BUILD_DIR/runtime/frontend-svelte" "$BUILD_DIR/runtime/backend-go"
 
-if [[ ! -f "$CURRENT_DIR/frontend-svelte/package.json" ]]; then
-  echo "Missing frontend-svelte/package.json in install source." >&2
-  exit 1
-fi
-if [[ ! -f "$CURRENT_DIR/backend-go/main.go" ]]; then
-  echo "Missing backend-go/main.go in install source." >&2
-  exit 1
-fi
+# Copy only build inputs. Repository metadata, tests, secrets and local runtime data
+# can never enter the deployed application directory through this path.
+cp "$ROOT_DIR/frontend-svelte/package.json" "$ROOT_DIR/frontend-svelte/package-lock.json" \
+  "$ROOT_DIR/frontend-svelte/index.html" "$ROOT_DIR/frontend-svelte/vite.config.js" \
+  "$BUILD_DIR/source/frontend-svelte/"
+cp -a "$ROOT_DIR/frontend-svelte/src" "$ROOT_DIR/frontend-svelte/public" "$BUILD_DIR/source/frontend-svelte/"
+cp "$ROOT_DIR/backend-go/go.mod" "$ROOT_DIR"/backend-go/*.go "$BUILD_DIR/source/backend-go/"
+cp "$ROOT_DIR/startpage-default-config.json" "$BUILD_DIR/runtime/startpage-default-config.json"
 
-echo "[1/3] Building frontend (Svelte/Vite)"
+echo "[1/4] Building frontend (Svelte/Vite)"
 (
-  cd "$CURRENT_DIR/frontend-svelte"
-  npm ci
+  cd "$BUILD_DIR/source/frontend-svelte"
+  npm ci --no-fund --no-audit
   npm run build
-  rm -rf node_modules
+  cp -a dist "$BUILD_DIR/runtime/frontend-svelte/dist"
 )
 
-echo "[2/3] Building backend (Go)"
+echo "[2/4] Building backend (Go)"
 (
-  cd "$CURRENT_DIR/backend-go"
-  go build -buildvcs=false -o kissdash-go .
-  chmod 755 kissdash-go
+  cd "$BUILD_DIR/source/backend-go"
+  go build -buildvcs=false -o "$BUILD_DIR/runtime/backend-go/kissdash-go" .
+  chmod 755 "$BUILD_DIR/runtime/backend-go/kissdash-go"
 )
 
-echo "[3/3] Applying ownership and runtime permissions"
+echo "[3/4] Installing the complete runtime candidate"
+if [[ "$ENABLE_SERVICE" -eq 1 ]] && systemctl is-active --quiet "$SERVICE_NAME"; then
+  systemctl stop "$SERVICE_NAME"
+fi
+mkdir -p "$CURRENT_DIR"
+rsync -a --delete "$BUILD_DIR/runtime/" "$CURRENT_DIR/"
+
+echo "[4/4] Applying ownership and runtime permissions"
 
 chown -R root:root "$CURRENT_DIR"
 chmod -R a+rX "$CURRENT_DIR"
@@ -137,21 +131,31 @@ chown -R "$SERVICE_USER:$SERVICE_GROUP" "$PRIVATE_ICONS_DIR"
 chmod 750 "$DATA_DIR"
 chmod 750 "$PRIVATE_ICONS_DIR"
 
+set_env_value() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+  fi
+}
+
 if [[ ! -f "$ENV_FILE" ]]; then
   cat > "$ENV_FILE" <<ENV
 # KISS Startpage runtime settings
-DASH_BIND=${BIND_ADDR}
-DASH_PORT=${PORT}
-DASH_DATA_DIR=${DATA_DIR}
-DASH_PRIVATE_ICONS_DIR=${PRIVATE_ICONS_DIR}
-DASH_DEFAULT_CONFIG=${CURRENT_DIR}/startpage-default-config.json
-DASH_APP_ROOT=${CURRENT_DIR}/frontend-svelte/dist
-# DASH_SESSION_TTL=43200
+# DASH_SESSION_TTL=315360000
 # DASH_ICON_INDEX_TTL=21600
 # DASH_ICON_SEARCH_MAX_LIMIT=30
 ENV
-  chmod 640 "$ENV_FILE"
 fi
+set_env_value DASH_BIND "$BIND_ADDR"
+set_env_value DASH_PORT "$PORT"
+set_env_value DASH_DATA_DIR "$DATA_DIR"
+set_env_value DASH_PRIVATE_ICONS_DIR "$PRIVATE_ICONS_DIR"
+set_env_value DASH_DEFAULT_CONFIG "$CURRENT_DIR/startpage-default-config.json"
+set_env_value DASH_APP_ROOT "$CURRENT_DIR/frontend-svelte/dist"
+chmod 640 "$ENV_FILE"
 
 cat > "$UNIT_FILE" <<UNIT
 [Unit]
@@ -179,14 +183,23 @@ systemctl daemon-reload
 if [[ "$ENABLE_SERVICE" -eq 1 ]]; then
   systemctl enable --now "$SERVICE_NAME"
   systemctl restart "$SERVICE_NAME"
-  if command -v curl >/dev/null 2>&1; then
-    HEALTH_URL="http://127.0.0.1:${PORT}/health"
-    for _ in $(seq 1 15); do
-      if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-        break
-      fi
-      sleep 1
-    done
+  HEALTH_HOST="$BIND_ADDR"
+  if [[ "$HEALTH_HOST" == "0.0.0.0" || "$HEALTH_HOST" == "::" || "$HEALTH_HOST" == "localhost" ]]; then
+    HEALTH_HOST="127.0.0.1"
+  fi
+  HEALTH_URL="http://${HEALTH_HOST}:${PORT}/health"
+  HEALTHY=0
+  for _ in $(seq 1 15); do
+    if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+      HEALTHY=1
+      break
+    fi
+    sleep 1
+  done
+  if [[ "$HEALTHY" -ne 1 ]]; then
+    echo "Service failed its health check: $HEALTH_URL" >&2
+    systemctl --no-pager --full status "$SERVICE_NAME" >&2 || true
+    exit 1
   fi
 fi
 

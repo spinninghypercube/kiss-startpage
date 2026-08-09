@@ -1,12 +1,19 @@
 <script>
   import { flip } from 'svelte/animate';
-  import { afterUpdate, onDestroy, onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import Sortable from 'sortablejs';
   import './styles/startpage.css';
   import './styles/edit.css';
-  import { StartpageCommon, DEFAULT_THEME, normalizeHexColorLoose, clampInteger, iconSource } from './lib/startpage-common.js';
-  import { StartpageUI, applyAdminThemePreview } from './lib/startpage-ui.js';
-  import { normalizeTheme, applyThemeCssVars, COLOR_GROUPS, THEME_DEFAULTS } from './lib/theme.js';
+  import { StartpageCommon, iconSource } from './lib/startpage-common.js';
+  import {
+    BUILT_IN_THEME_PRESETS,
+    THEME_DEFAULTS,
+    applyThemeCssVars,
+    clampInteger,
+    normalizeHexColor,
+    normalizeHexColorLoose,
+    normalizeTheme
+  } from './lib/theme.js';
   import LoginView from './components/LoginView.svelte';
   import AccountPane from './components/AccountPane.svelte';
   import ButtonModal from './components/ButtonModal.svelte';
@@ -26,65 +33,6 @@
     const b = parseInt(hex.slice(4, 6), 16);
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff';
   }
-  const BUILT_IN_THEME_PRESETS = [
-    {
-      id: 'builtin-default-theme',
-      name: 'Default Theme',
-      theme: {
-        backgroundColor: '#101728', groupBackgroundColor: '#172644', textColor: '#f8fafc',
-        buttonTextColor: '#0f172a', tabColor: '#1e293b', activeTabColor: '#2563eb',
-        tabTextColor: '#cbd5e1', activeTabTextColor: '#ffffff',
-        buttonColorMode: 'cycle-custom', buttonCycleHueStep: 15,
-        buttonCycleSaturation: 70, buttonCycleLightness: 74, buttonSolidColor: '#93c5fd'
-      }
-    },
-    {
-      id: 'builtin-paper-ink',
-      name: 'Paper & Ink',
-      theme: {
-        backgroundColor: '#f8fafc', groupBackgroundColor: '#e2e8f0', textColor: '#0f172a',
-        buttonTextColor: '#ffffff', tabColor: '#cbd5e1', activeTabColor: '#0f172a',
-        tabTextColor: '#0f172a', activeTabTextColor: '#f8fafc',
-        buttonColorMode: 'solid-all', buttonCycleHueStep: 15,
-        buttonCycleSaturation: 70, buttonCycleLightness: 74, buttonSolidColor: '#0f172a'
-      }
-    },
-    {
-      id: 'builtin-forest-terminal',
-      name: 'Forest Terminal',
-      theme: {
-        backgroundColor: '#071a12', groupBackgroundColor: '#0d261d', textColor: '#d1fae5',
-        buttonTextColor: '#062f23', tabColor: '#14532d', activeTabColor: '#10b981',
-        tabTextColor: '#d1fae5', activeTabTextColor: '#052e22',
-        buttonColorMode: 'cycle-custom', buttonCycleHueStep: 11,
-        buttonCycleSaturation: 66, buttonCycleLightness: 64, buttonSolidColor: '#34d399'
-      }
-    },
-    {
-      id: 'builtin-sunset-control',
-      name: 'Sunset Control',
-      theme: {
-        backgroundColor: '#1f1027', groupBackgroundColor: '#2c1637', textColor: '#fae8ff',
-        buttonTextColor: '#240f2d', tabColor: '#4a1d5d', activeTabColor: '#f97316',
-        tabTextColor: '#f5d0fe', activeTabTextColor: '#1f0a04',
-        buttonColorMode: 'cycle-custom', buttonCycleHueStep: 18,
-        buttonCycleSaturation: 85, buttonCycleLightness: 68, buttonSolidColor: '#fb923c'
-      }
-    },
-    {
-      id: 'builtin-warm-ember',
-      name: 'Warm Ember',
-      theme: {
-        backgroundColor: '#160c02', groupBackgroundColor: '#2a1600', textColor: '#fde8c4',
-        buttonTextColor: '#160c02', tabColor: '#3d2006', activeTabColor: '#f59e0b',
-        tabTextColor: '#fde8c4', activeTabTextColor: '#160c02',
-        buttonColorMode: 'cycle-custom', buttonCycleHueStep: 25,
-        buttonCycleSaturation: 80, buttonCycleLightness: 62, buttonSolidColor: '#f59e0b'
-      }
-    }
-  ];
-  // COLOR_FIELDS removed — use COLOR_GROUPS from theme.js
-
   // ─── Shared state ─────────────────────────────────────────────────────────────
 
   let editMode = false;
@@ -101,9 +49,7 @@
   let viewGroups = [];
   let tabsScrollEl;
   let tabsListEl;
-  let tabsActionsEl;
   let tabsRowEl;
-  let editActionsWidth = 0;
   let tabsOverflowing = false;
   let isMobileViewport = false;
   let resizeObserver;
@@ -131,7 +77,6 @@
   let openLinksInNewTabDraft = true;
   let showLinkToggleDraft = true;
   let themeDraft = normalizeTheme({});
-  let themePresetSelectValue = '';
   let themePresetName = '';
 
   // ─── Edit-mode modal state ────────────────────────────────────────────────────
@@ -148,31 +93,73 @@
   let buttonModalButtonId = '';
   let buttonModalInitialData = { name: '', icon: '', externalUrl: '', internalUrl: '', iconData: '', iconMeta: null };
 
-  // ─── Edit-mode DnD state ──────────────────────────────────────────────────────
-
-  let dndPersistTimer = null;
-  let tabsSortable = null;
-  let groupsSortable = null;
-  let buttonSortables = [];
-  let sortableRefreshQueued = false;
-
   // ─── Edit-mode computed state ─────────────────────────────────────────────────
 
   let builtInThemePresets = [];
   let savedThemePresets = [];
-  let themePresetSelected = null;
-  let canDeleteThemePreset = false;
   let editorGroups = [];
   let themeButtonMode = StartpageCommon.normalizeButtonColorMode(themeDraft.buttonColorMode);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  let _saveTimer = null;
+  let configRevision = 0;
+  let savedConfigRevision = 0;
+  let configSaveTimer = null;
+  let configSaveInFlight = null;
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function saveConfigSnapshot(snapshot) {
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await StartpageCommon.saveConfig(snapshot);
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0) await wait(300);
+      }
+    }
+    throw lastError || new Error('Failed to save configuration.');
+  }
+
+  async function saveNextConfigRevision() {
+    const revision = configRevision;
+    const snapshot = StartpageCommon.normalizeConfig(config);
+    const saved = await saveConfigSnapshot(snapshot);
+    savedConfigRevision = Math.max(savedConfigRevision, revision);
+    if (revision === configRevision) {
+      config = StartpageCommon.normalizeConfig(saved);
+      ensureActiveTab();
+      syncDraftsFromActiveTab();
+      applyCurrentAdminThemePreview();
+    }
+  }
+
+  async function flushConfigSaves() {
+    if (configSaveTimer) {
+      clearTimeout(configSaveTimer);
+      configSaveTimer = null;
+    }
+    while (savedConfigRevision < configRevision) {
+      if (!configSaveInFlight) {
+        configSaveInFlight = saveNextConfigRevision().finally(() => {
+          configSaveInFlight = null;
+        });
+      }
+      await configSaveInFlight;
+    }
+  }
+
   function debouncedSave() {
-    if (_saveTimer) clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(() => {
-      persistConfig();
-      _saveTimer = null;
+    if (configSaveTimer) clearTimeout(configSaveTimer);
+    configSaveTimer = setTimeout(() => {
+      configSaveTimer = null;
+      flushConfigSaves().catch((error) => {
+        console.error(error);
+        showMessage('Failed to save changes. Your edits are still open.', 'is-danger');
+      });
     }, 500);
   }
 
@@ -194,12 +181,9 @@
     if (messageVisible) messageTimer = setTimeout(() => hideMessage(), 2000);
   }
 
-  function clearTransientDndUiState() {
-    // No svelte-dnd-action items to clear — Sortable.js handles DnD via DOM
-  }
-
   function touchConfig() {
     config = clone(config);
+    configRevision += 1;
   }
 
   // ─── Tab lookup ─────────────────────────────────────────────────────────
@@ -251,50 +235,22 @@
 
   // ─── Theme helpers ────────────────────────────────────────────────────────────
 
-  function normalizeThemePresetTheme(theme) {
-    const defaults = DEFAULT_BUTTON_COLOR_OPTIONS;
-    return {
-      backgroundColor:      StartpageUI.normalizeHexColor(theme?.backgroundColor)      || DEFAULT_THEME.backgroundColor,
-      groupBackgroundColor: StartpageUI.normalizeHexColor(theme?.groupBackgroundColor) || DEFAULT_THEME.groupBackgroundColor,
-      textColor:            StartpageUI.normalizeHexColor(theme?.textColor)            || DEFAULT_THEME.textColor,
-      buttonTextColor:      StartpageUI.normalizeHexColor(theme?.buttonTextColor)      || DEFAULT_THEME.buttonTextColor,
-      tabColor:             StartpageUI.normalizeHexColor(theme?.tabColor)             || DEFAULT_THEME.tabColor,
-      activeTabColor:       StartpageUI.normalizeHexColor(theme?.activeTabColor)       || DEFAULT_THEME.activeTabColor,
-      tabTextColor:         StartpageUI.normalizeHexColor(theme?.tabTextColor)         || DEFAULT_THEME.tabTextColor,
-      activeTabTextColor:   StartpageUI.normalizeHexColor(theme?.activeTabTextColor)   || DEFAULT_THEME.activeTabTextColor,
-      buttonColorMode:      StartpageCommon.normalizeButtonColorMode(theme?.buttonColorMode),
-      buttonCycleHueStep:   clampInteger(theme?.buttonCycleHueStep, 1, 180, defaults.buttonCycleHueStep),
-      buttonCycleSaturation: clampInteger(theme?.buttonCycleSaturation, 0, 100, defaults.buttonCycleSaturation),
-      buttonCycleLightness: clampInteger(theme?.buttonCycleLightness, 0, 100, defaults.buttonCycleLightness),
-      buttonSolidColor:     StartpageUI.normalizeHexColor(theme?.buttonSolidColor) || defaults.buttonSolidColor
-    };
-  }
-
   function getResolvedBuiltInThemePresets() {
-    return BUILT_IN_THEME_PRESETS.map((preset) => ({ ...preset, theme: normalizeThemePresetTheme(preset.theme) }));
+    return BUILT_IN_THEME_PRESETS.map((preset) => ({ ...preset, theme: normalizeTheme(preset.theme) }));
   }
 
   function buildDefaultThemeValues() {
     const builtInDefault = getResolvedBuiltInThemePresets().find((p) => p.id === 'builtin-default-theme');
-    return builtInDefault ? { ...builtInDefault.theme } : normalizeThemePresetTheme({});
+    return builtInDefault ? { ...builtInDefault.theme } : normalizeTheme({});
   }
 
   function applyStartpageTheme() {
-    // Apply global theme from config.theme (or themeDraft if in edit mode)
     const themeSource = editMode ? themeDraft : (config.theme || {});
     applyThemeCssVars(themeSource);
-    // Also apply the StartpageUI vars for nav tab contrast and switch colors
-    StartpageUI.applyStartpageThemeCssVariables(themeSource, {
-      flatClassName: 'startpage-group-shell-flat',
-      groupRadius: '0.85rem', setGroupRadius: true,
-      defaultPageColor: THEME_DEFAULTS.backgroundColor,
-      defaultGroupColor: THEME_DEFAULTS.groupBackgroundColor
-    });
   }
 
   function applyCurrentAdminThemePreview() {
     applyThemeCssVars(themeDraft);
-    applyAdminThemePreview({ ...themeDraft }, DEFAULT_THEME);
   }
 
   function applyPageTitle() {
@@ -352,6 +308,8 @@
     loadError = '';
     try {
       config = StartpageCommon.normalizeConfig(await StartpageCommon.getConfig());
+      configRevision = 0;
+      savedConfigRevision = 0;
       activeTabId = getValidStartpageId('');
       ensureActiveTab();
       StartpageCommon.setActiveStartpageId(activeTabId);
@@ -368,13 +326,7 @@
   }
 
   async function persistConfig(message = '') {
-    config = StartpageCommon.normalizeConfig(config);
-    ensureActiveTab();
-    config = StartpageCommon.normalizeConfig(await StartpageCommon.saveConfig(config));
-    ensureActiveTab();
-    syncDraftsFromActiveTab();
-    applyCurrentAdminThemePreview();
-    // success notifications removed
+    await flushConfigSaves();
   }
 
   // ─── Mode switching ───────────────────────────────────────────────────────────
@@ -404,27 +356,40 @@
     }
   }
 
-  function exitEditMode() {
-    if (dndPersistTimer) { clearTimeout(dndPersistTimer); dndPersistTimer = null; }
+  async function exitEditMode() {
+    try {
+      await flushConfigSaves();
+    } catch (error) {
+      console.error(error);
+      showMessage('Failed to save changes. Edit mode remains open.', 'is-danger');
+      return false;
+    }
     if (window.history?.pushState) window.history.pushState(null, '', '/');
     editMode = false;
     authenticated = false;
     accountPaneOpen = false;
     showThemeEditor = false;
-    destroyAllSortables();
     hideMessage();
     applyStartpageTheme();
+    return true;
   }
 
-  function toggleEditMode() {
-    if (editMode) { exitEditMode(); } else { enterEditMode(); }
+  async function toggleEditMode() {
+    if (editMode) { await exitEditMode(); } else { await enterEditMode(); }
   }
 
   async function logoutSubmit() {
     hideMessage();
+    try {
+      await flushConfigSaves();
+    } catch (error) {
+      console.error(error);
+      showMessage('Failed to save changes. Log out cancelled.', 'is-danger');
+      return;
+    }
     try { await StartpageCommon.logout(); } catch (error) { console.warn(error); }
     authUser = '';
-    exitEditMode();
+    await exitEditMode();
   }
 
   // ─── Edit-mode draft sync ─────────────────────────────────────────────────────
@@ -434,7 +399,7 @@
     return items.map((preset, i) => ({
       id: preset?.id ? String(preset.id) : `theme-${i + 1}`,
       name: (preset?.name || `Theme ${i + 1}`).toString(),
-      theme: normalizeThemePresetTheme(preset?.theme)
+      theme: normalizeTheme(preset?.theme)
     }));
   }
 
@@ -478,16 +443,15 @@
       if (!next[key]) next[key] = THEME_DEFAULTS[key] || '';
     }
     themeDraft = next;
-    // Write to config.theme
-    config.theme = { ...themeDraft };
-    touchConfig();
+    config = { ...config, theme: { ...themeDraft } };
+    configRevision += 1;
     applyCurrentAdminThemePreview();
     if (commit) debouncedSave();
   }
 
   // ThemeEditor event handlers
   function handleThemeUpdate(e) {
-    setThemeField(e.detail.key, e.detail.value, { commit: true });
+    setThemeField(e.detail.key, e.detail.value, { commit: Boolean(e.detail.commit) });
   }
 
   function handleSavePreset(e) {
@@ -500,8 +464,8 @@
     if (!preset) return;
     themePresetName = getNextCustomThemePresetName();
     themeDraft = normalizeTheme(preset.theme);
-    config.theme = { ...themeDraft };
-    touchConfig();
+    config = { ...config, theme: { ...themeDraft } };
+    configRevision += 1;
     applyCurrentAdminThemePreview();
     debouncedSave();
   }
@@ -509,9 +473,7 @@
   function handleDeletePreset(e) {
     const preset = e.detail.preset;
     if (!preset) return;
-    // Map to themePresetSelectValue format for deleteSelectedThemePreset
-    themePresetSelectValue = preset.id ? `saved:${preset.id}` : '';
-    deleteSelectedThemePreset()
+    deleteThemePreset(preset)
       .then(() => {
         // Reset to default theme after deleting a custom preset
         const defaultPreset = getResolvedBuiltInThemePresets().find((p) => p.id === 'builtin-default-theme');
@@ -528,33 +490,6 @@
 
   // ─── Edit-mode theme preset functions ────────────────────────────────────────
 
-  function getSelectedThemePreset() {
-    const value = (themePresetSelectValue || '').trim();
-    if (!value.includes(':')) return null;
-    const [scope, id] = value.split(':', 2);
-    if (scope === 'builtin') {
-      const p = getResolvedBuiltInThemePresets().find((x) => x.id === id);
-      return p ? { ...p, scope } : null;
-    }
-    if (scope === 'saved') {
-      const p = getSavedThemePresets().find((x) => x.id === id);
-      return p ? { ...p, scope } : null;
-    }
-    return null;
-  }
-
-  async function onThemePresetSelectChange(value) {
-    themePresetSelectValue = value;
-    const preset = getSelectedThemePreset();
-    if (!preset) return;
-    themePresetName = getNextCustomThemePresetName();
-    themeDraft = normalizeTheme(preset.theme);
-    config.theme = { ...themeDraft };
-    touchConfig();
-    applyCurrentAdminThemePreview();
-    await persistConfig('');
-  }
-
   async function saveCurrentThemePreset() {
     hideMessage();
     const name = (themePresetName || '').trim();
@@ -567,20 +502,20 @@
     if (existingIndex >= 0) { nextSaved.splice(existingIndex, 1, nextPreset); } else { nextSaved.push(nextPreset); }
     config.themePresets = nextSaved;
     touchConfig();
-    themePresetSelectValue = `saved:${presetId}`;
     await persistConfig(existingIndex >= 0 ? 'Theme preset updated.' : 'Theme preset saved.');
   }
 
-  async function deleteSelectedThemePreset() {
+  async function deleteThemePreset(preset) {
     hideMessage();
-    const preset = getSelectedThemePreset();
-    if (!preset || preset.scope !== 'saved') { showMessage('Select a saved theme preset to delete.', 'is-danger'); return; }
+    if (!preset?.id || !getSavedThemePresets().some((item) => item.id === preset.id)) {
+      showMessage('Select a saved theme preset to delete.', 'is-danger');
+      return;
+    }
     const saved = getSavedThemePresets();
     const nextSaved = saved.filter((p) => p.id !== preset.id);
     if (nextSaved.length === saved.length) { showMessage('Theme preset not found.', 'is-danger'); return; }
     config.themePresets = nextSaved;
     touchConfig();
-    themePresetSelectValue = '';
     await persistConfig(`Theme preset "${preset.name}" deleted.`);
   }
 
@@ -635,7 +570,7 @@
   }
 
   function getGroupButtonSolidColor(group) {
-    return StartpageUI.normalizeHexColor(group?.buttonSolidColor) || StartpageUI.normalizeHexColor(themeDraft.buttonSolidColor) || DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor;
+    return normalizeHexColor(group?.buttonSolidColor) || normalizeHexColor(themeDraft.buttonSolidColor) || DEFAULT_BUTTON_COLOR_OPTIONS.buttonSolidColor;
   }
 
   function setGroupButtonSolidColor(group, value, commit = false) {
@@ -711,6 +646,7 @@
       dashboard.id = id;
       config.dashboards.push(dashboard);
       activeTabId = dashboard.id;
+      touchConfig();
       closeActionModal();
       await persistConfig('');
       return;
@@ -829,156 +765,86 @@
 
   // ─── Edit-mode DnD (Sortable.js) ──────────────────────────────────────────────
 
-  function reorderByIdsPreservingObjects(items, orderedIds) {
-    const source = Array.isArray(items) ? items : [];
-    const byId = new Map(source.filter((x) => x?.id).map((x) => [x.id, x]));
-    const next = []; const seen = new Set();
-    for (const id of (Array.isArray(orderedIds) ? orderedIds : [])) {
-      if (!id || seen.has(id)) continue;
-      const item = byId.get(id);
-      if (!item) continue;
-      next.push(item); seen.add(id);
-    }
-    for (const item of source) {
-      if (!item?.id || seen.has(item.id)) continue;
-      next.push(item); seen.add(item.id);
-    }
-    return next;
+  function moveItem(items, oldIndex, newIndex) {
+    if (!Array.isArray(items) || oldIndex == null || newIndex == null || oldIndex === newIndex) return false;
+    const [item] = items.splice(oldIndex, 1);
+    if (!item) return false;
+    items.splice(newIndex, 0, item);
+    return true;
   }
 
-  function collectChildIds(container, selector, attrName) {
-    if (!container) return [];
-    return Array.from(container.querySelectorAll(selector))
-      .map((node) => (node instanceof HTMLElement ? (node.dataset?.[attrName] || '').trim() : ''))
-      .filter(Boolean);
-  }
-
-  function applyTabsOrderFromDom() {
-    const list = document.getElementById('mainTabsList');
-    if (!list) return;
-    const orderedIds = collectChildIds(list, ':scope > li.tab-sort-item[data-dashboard-id]', 'dashboardId');
-    if (!orderedIds.length && (config.dashboards || []).length) return;
-    config.dashboards = reorderByIdsPreservingObjects(config.dashboards, orderedIds);
-    touchConfig(); ensureActiveTab(); syncDraftsFromActiveTab(); applyCurrentAdminThemePreview();
-  }
-
-  function applyGroupsOrderFromDom() {
-    const dashboard = getActiveTab();
-    if (!dashboard) return;
-    const container = document.getElementById('groupsEditor');
-    if (!container) return;
-    const orderedIds = collectChildIds(container, ':scope > section[data-group-sort-item][data-group-id]', 'groupId');
-    if (!orderedIds.length && (dashboard.groups || []).length) return;
-    dashboard.groups = reorderByIdsPreservingObjects(dashboard.groups, orderedIds);
+  function saveDndChange(errorMessage) {
     touchConfig();
+    persistConfig('').catch((error) => {
+      console.error(error);
+      showMessage(errorMessage, 'is-danger');
+    });
   }
 
-  function applyButtonOrdersFromDom() {
-    const dashboard = getActiveTab();
-    if (!dashboard) return;
-    const groups = Array.isArray(dashboard.groups) ? dashboard.groups : [];
-    const groupsById = new Map(groups.map((g) => [g.id, g]));
-    const allEntriesById = new Map();
-    for (const group of groups) {
-      for (const entry of Array.isArray(group.entries) ? group.entries : []) {
-        if (entry?.id && !allEntriesById.has(entry.id)) allEntriesById.set(entry.id, entry);
+  function sortableTabs(node, enabled) {
+    const sortable = Sortable.create(node, {
+      animation: DND_FLIP_DURATION_MS,
+      draggable: 'li.tab-sort-item[data-dashboard-id]',
+      handle: '.tab-drag-handle',
+      forceFallback: true,
+      disabled: !enabled,
+      onEnd: (event) => {
+        if (!moveItem(config.dashboards, event.oldDraggableIndex, event.newDraggableIndex)) return;
+        ensureActiveTab();
+        saveDndChange('Failed to reorder tabs.');
       }
-    }
-    const grids = Array.from(document.querySelectorAll('#groupsEditor .entry-grid[data-group-id]'));
-    if (!grids.length) return;
-    // Pre-collect every button ID present anywhere in the DOM so the fallback
-    // loop below doesn't re-add buttons that SortableJS moved to another group.
-    const domPresentIds = new Set();
-    for (const grid of grids) {
-      if (!(grid instanceof HTMLElement)) continue;
-      for (const id of collectChildIds(grid, ':scope > div[data-button-sort-item][data-button-id]', 'buttonId')) {
-        if (id) domPresentIds.add(id);
+    });
+    return {
+      update(nextEnabled) { sortable.option('disabled', !nextEnabled); },
+      destroy() { sortable.destroy(); }
+    };
+  }
+
+  function sortableGroups(node) {
+    const sortable = Sortable.create(node, {
+      group: { name: 'kiss-groups', pull: false, put: false },
+      animation: DND_FLIP_DURATION_MS,
+      draggable: 'section[data-group-sort-item][data-group-id]',
+      handle: '.group-drag-handle',
+      scroll: true,
+      scrollSensitivity: 100,
+      scrollSpeed: 10,
+      onEnd: (event) => {
+        const dashboard = getActiveTab();
+        if (!dashboard || !moveItem(dashboard.groups, event.oldDraggableIndex, event.newDraggableIndex)) return;
+        saveDndChange('Failed to reorder groups.');
       }
-    }
-    const seenIds = new Set();
-    for (const grid of grids) {
-      if (!(grid instanceof HTMLElement)) continue;
-      const groupId = (grid.dataset?.groupId || '').trim();
-      const group = groupsById.get(groupId);
-      if (!group) continue;
-      const orderedIds = collectChildIds(grid, ':scope > div[data-button-sort-item][data-button-id]', 'buttonId');
-      const nextEntries = [];
-      for (const id of orderedIds) {
-        if (!id || seenIds.has(id)) continue;
-        const entry = allEntriesById.get(id);
-        if (!entry) continue;
-        nextEntries.push(entry); seenIds.add(id);
+    });
+    return { destroy() { sortable.destroy(); } };
+  }
+
+  function sortableButtons(node) {
+    const sortable = Sortable.create(node, {
+      group: { name: 'kiss-buttons', pull: true, put: true },
+      animation: DND_FLIP_DURATION_MS,
+      draggable: 'div[data-button-sort-item][data-button-id]',
+      handle: '.button-drag-handle',
+      scroll: true,
+      scrollSensitivity: 100,
+      scrollSpeed: 10,
+      forceFallback: true,
+      fallbackOnBody: true,
+      onEnd: (event) => {
+        const dashboard = getActiveTab();
+        const source = dashboard?.groups?.find((group) => group.id === event.from?.dataset?.groupId);
+        const target = dashboard?.groups?.find((group) => group.id === event.to?.dataset?.groupId);
+        if (!source || !target || event.oldDraggableIndex == null || event.newDraggableIndex == null) return;
+        if (source === target) {
+          if (!moveItem(source.entries, event.oldDraggableIndex, event.newDraggableIndex)) return;
+        } else {
+          const [entry] = source.entries.splice(event.oldDraggableIndex, 1);
+          if (!entry) return;
+          target.entries.splice(event.newDraggableIndex, 0, entry);
+        }
+        saveDndChange('Failed to reorder buttons.');
       }
-      // Only fall back to config data for buttons that are genuinely absent from
-      // the entire DOM (e.g. render glitch) — not ones that moved to another group.
-      for (const entry of Array.isArray(group.entries) ? group.entries : []) {
-        if (!entry?.id || seenIds.has(entry.id)) continue;
-        if (domPresentIds.has(entry.id)) continue;
-        nextEntries.push(entry); seenIds.add(entry.id);
-      }
-      group.entries = nextEntries;
-    }
-    touchConfig();
-  }
-
-  function queueDndPersist(errorMessage) {
-    if (dndPersistTimer) { clearTimeout(dndPersistTimer); dndPersistTimer = null; }
-    dndPersistTimer = setTimeout(() => {
-      dndPersistTimer = null;
-      persistConfig('').catch((err) => { console.error(err); showMessage(errorMessage || 'Failed to reorder items.', 'is-danger'); });
-    }, 0);
-  }
-
-  function destroySortableInstance(instance) {
-    if (!instance) return;
-    try { instance.destroy(); } catch (err) { console.error(err); }
-  }
-
-  function destroyAllSortables() {
-    destroySortableInstance(tabsSortable); tabsSortable = null;
-    destroySortableInstance(groupsSortable); groupsSortable = null;
-    for (const s of buttonSortables) destroySortableInstance(s);
-    buttonSortables = [];
-  }
-
-  function createSortableInstances() {
-    destroyAllSortables();
-    if (!editMode || !authenticated) return;
-    const tabsList = document.getElementById('mainTabsList');
-    if (tabsList) {
-      tabsSortable = Sortable.create(tabsList, {
-        animation: DND_FLIP_DURATION_MS, draggable: 'li.tab-sort-item[data-dashboard-id]',
-        handle: '.tab-drag-handle',
-        forceFallback: true,
-        onEnd: () => { try { applyTabsOrderFromDom(); queueDndPersist('Failed to reorder tabs.'); } catch (e) { console.error(e); showMessage('Failed to reorder tabs.', 'is-danger'); } }
-      });
-    }
-    const groupsContainer = document.getElementById('groupsEditor');
-    if (groupsContainer?.querySelector('section[data-group-sort-item]')) {
-      groupsSortable = Sortable.create(groupsContainer, {
-        group: { name: 'kiss-groups', pull: false, put: false },
-        animation: DND_FLIP_DURATION_MS, draggable: 'section[data-group-sort-item][data-group-id]',
-        handle: '.group-drag-handle',
-        scroll: true, scrollSensitivity: 100, scrollSpeed: 10,
-        onEnd: () => { try { applyGroupsOrderFromDom(); queueDndPersist('Failed to reorder groups.'); } catch (e) { console.error(e); showMessage('Failed to reorder groups.', 'is-danger'); } }
-      });
-    }
-    buttonSortables = Array.from(document.querySelectorAll('#groupsEditor .entry-grid[data-group-id]')).map((grid) =>
-      Sortable.create(grid, {
-        group: { name: 'kiss-buttons', pull: true, put: true },
-        animation: DND_FLIP_DURATION_MS, draggable: 'div[data-button-sort-item][data-button-id]',
-        handle: '.button-drag-handle',
-        scroll: true, scrollSensitivity: 100, scrollSpeed: 10,
-        forceFallback: true, fallbackOnBody: true,
-        onEnd: () => { try { applyButtonOrdersFromDom(); queueDndPersist('Failed to reorder buttons.'); } catch (e) { console.error(e); showMessage('Failed to reorder buttons.', 'is-danger'); } }
-      })
-    );
-  }
-
-  function queueSortableRefresh() {
-    if (sortableRefreshQueued) return;
-    sortableRefreshQueued = true;
-    Promise.resolve().then(async () => { sortableRefreshQueued = false; await tick(); createSortableInstances(); });
+    });
+    return { destroy() { sortable.destroy(); } };
   }
 
   // ─── Edit-mode group decorations ──────────────────────────────────────────────
@@ -1007,16 +873,8 @@
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
-  afterUpdate(() => {
-    if (editMode && authenticated) {
-      queueSortableRefresh();
-    } else {
-      destroyAllSortables();
-    }
-  });
-
   onDestroy(() => {
-    destroyAllSortables();
+    if (configSaveTimer) clearTimeout(configSaveTimer);
     clearMessageTimer();
     resizeObserver?.disconnect();
   });
@@ -1045,7 +903,6 @@
 
     return () => {
       window.removeEventListener('resize', onResize);
-      destroyAllSortables();
       clearMessageTimer();
     };
   });
@@ -1056,13 +913,10 @@
   $: { activeTab; currentLinkMode; viewGroups = (!editMode && activeTab) ? buttonDecorations(activeTab) : []; }
   $: { editMode; authenticated; config; activeTabId; themeDraft; editorGroups = (editMode && authenticated) ? decoratedEditorGroups() : []; }
   $: { config; builtInThemePresets = getResolvedBuiltInThemePresets(); savedThemePresets = getSavedThemePresets(); }
-  $: { themePresetSelectValue; builtInThemePresets; savedThemePresets; themePresetSelected = getSelectedThemePreset(); canDeleteThemePreset = Boolean(themePresetSelected?.scope === 'saved'); }
   $: { themeDraft; themeButtonMode = StartpageCommon.normalizeButtonColorMode(themeDraft.buttonColorMode); }
   $: showLinkToggle = !editMode && Boolean(activeTab?.enableInternalLinks);
   $: showEditInToolbar = true;
   $: { loading; activeTab; config; if (!loading && activeTab && !editMode) { applyPageTitle(); applyStartpageTheme(); } }
-  // Ensure allPresets is available for ThemeEditor
-  $: allPresets = [...(builtInThemePresets || []), ...(savedThemePresets || [])];
 </script>
 
 <svelte:head>
@@ -1086,7 +940,7 @@
       <div class="tabs is-boxed mode-tabs">
         <div bind:this={tabsRowEl} class="mode-tabs-row">
           <div bind:this={tabsScrollEl} class="mode-tabs-scroll">
-            <ul bind:this={tabsListEl} id="mainTabsList">
+            <ul bind:this={tabsListEl} id="mainTabsList" use:sortableTabs={editMode && authenticated}>
               {#each config.dashboards as dashboard (dashboard.id)}
                 <li
                   class={`${dashboard.id === activeTabId ? 'is-active ' : ''}${editMode ? 'tab-sort-item' : ''}`.trim()}
@@ -1271,7 +1125,7 @@
             </div>
           </div>
 
-          <div id="groupsEditor">
+          <div id="groupsEditor" use:sortableGroups>
               {#each editorGroups as row (row.group.id)}
                 <section
                   class={`box group-box ${row.group.groupEnd ? 'group-end' : ''}`.trim()}
@@ -1299,7 +1153,7 @@
                     </div>
                   </div>
 
-                  <div class="columns is-mobile is-multiline entry-grid" data-button-sort-container="" data-group-id={row.group.id}>
+                  <div class="columns is-mobile is-multiline entry-grid" data-button-sort-container="" data-group-id={row.group.id} use:sortableButtons>
                     {#each row.entries as cell (cell.buttonEntry.id)}
                       <div
                         class="column is-half-mobile is-one-third-tablet is-one-quarter-desktop"

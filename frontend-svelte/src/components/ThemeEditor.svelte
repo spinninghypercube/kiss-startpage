@@ -26,8 +26,8 @@
     selectedPresetId = '';
   }
 
-  function updateColor(key, value) {
-    dispatch('update', { key, value });
+  function updateColor(key, value, commit) {
+    dispatch('update', { key, value, commit: Boolean(commit) });
   }
 
   function savePreset() {
@@ -94,15 +94,15 @@
               style="border: 2px solid {contrastBorder(val)};"
               aria-label={field.label}
               value={val}
-              on:input={(e) => updateColor(field.key, e.target.value)}
-              on:change={(e) => updateColor(field.key, e.target.value)}
+              on:input={(e) => updateColor(field.key, e.target.value, false)}
+              on:change={(e) => updateColor(field.key, e.target.value, true)}
             />
             <input
               id={`tf-${field.key}`}
               class="input color-hex-input"
               type="text"
               value={val}
-              on:change={(e) => updateColor(field.key, e.target.value)}
+              on:change={(e) => updateColor(field.key, e.target.value, true)}
               maxlength="7"
               pattern="#[0-9a-fA-F]{6}"
             />
@@ -117,7 +117,7 @@
 <div class="te-group">
   <label class="te-group-label" for="themeButtonColorModeSelect">Button Color Mode</label>
   <div class="select is-fullwidth">
-    <select id="themeButtonColorModeSelect" value={theme.buttonColorMode} on:change={(e) => updateColor('buttonColorMode', e.target.value)}>
+    <select id="themeButtonColorModeSelect" value={theme.buttonColorMode} on:change={(e) => updateColor('buttonColorMode', e.target.value, true)}>
       <option value="cycle-custom">Cycle (HSL)</option>
       <option value="solid-all">Solid — same for all</option>
       <option value="solid-per-group">Solid — per group</option>
@@ -131,21 +131,24 @@
           <label for="theme-hue-step">Hue step</label>
           <input id="theme-hue-step" type="range" min="5" max="60"
             value={theme.buttonCycleHueStep ?? 15}
-            on:input={(e) => updateColor('buttonCycleHueStep', Number(e.target.value))} />
+            on:input={(e) => updateColor('buttonCycleHueStep', Number(e.target.value), false)}
+            on:change={(e) => updateColor('buttonCycleHueStep', Number(e.target.value), true)} />
           <span class="slider-val">{theme.buttonCycleHueStep ?? 15}°</span>
         </div>
         <div class="slider-row">
           <label for="theme-saturation">Saturation</label>
           <input id="theme-saturation" type="range" min="20" max="100"
             value={theme.buttonCycleSaturation ?? 70}
-            on:input={(e) => updateColor('buttonCycleSaturation', Number(e.target.value))} />
+            on:input={(e) => updateColor('buttonCycleSaturation', Number(e.target.value), false)}
+            on:change={(e) => updateColor('buttonCycleSaturation', Number(e.target.value), true)} />
           <span class="slider-val">{theme.buttonCycleSaturation ?? 70}%</span>
         </div>
         <div class="slider-row">
           <label for="theme-lightness">Lightness</label>
           <input id="theme-lightness" type="range" min="20" max="95"
             value={theme.buttonCycleLightness ?? 74}
-            on:input={(e) => updateColor('buttonCycleLightness', Number(e.target.value))} />
+            on:input={(e) => updateColor('buttonCycleLightness', Number(e.target.value), false)}
+            on:change={(e) => updateColor('buttonCycleLightness', Number(e.target.value), true)} />
           <span class="slider-val">{theme.buttonCycleLightness ?? 74}%</span>
         </div>
       </div>

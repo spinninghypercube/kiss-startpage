@@ -10,16 +10,17 @@ Commit source code, tests, documentation, lockfiles, the generic starter config,
 
 1. Add the user-visible changes under a dated `CHANGELOG.md` section for the new version.
 2. Set `appVersion` in `backend-go/main.go` to the same version.
-3. Merge the tested change to `main` and ensure GitHub CI is green.
-4. Run `bash maintainer/release.sh X.Y.Z`.
-5. Push explicitly:
+3. Run all checks from `CONTRIBUTING.md` locally.
+4. Back up persistent production data.
+5. Deploy the candidate from the local Jarvis checkout and let the maintainer validate it in production.
+6. Wait for separate, explicit permission to publish this exact candidate.
+7. Commit and push `main`, then confirm GitHub CI is green.
+8. Run `bash maintainer/release.sh X.Y.Z` and push the tag explicitly:
 
    ```bash
-   git push origin main
    git push origin vX.Y.Z
    ```
 
-6. Confirm the tag workflow created the GitHub Release and attached both Windows installer filenames.
-7. Back up persistent data before updating a production instance.
+9. Confirm the tag workflow created the GitHub Release and attached both Windows installer filenames.
 
 The rolling Windows installer remains a prerelease convenience asset. Generated executables belong in Actions/Releases, not in Git history.

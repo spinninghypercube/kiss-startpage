@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StartpageCommon } from './startpage-common.js';
-import { deriveEditModeColors } from './theme.js';
+import { applyBrowserThemeColor, deriveEditModeColors } from './theme.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -8,6 +8,23 @@ afterEach(() => {
 });
 
 describe('normalizeConfig', () => {
+  it('preserves complete global and saved theme colors', () => {
+    const theme = {
+      backgroundColor: '#050709',
+      tabHoverColor: '#1b2329',
+      groupBorderColor: '#293138'
+    };
+    const normalized = StartpageCommon.normalizeConfig({
+      title: 'Theme fixture',
+      theme,
+      themePresets: [{ id: 'theme-brand', name: 'Brand', theme }],
+      dashboards: [{ id: 'default', label: 'Default', groups: [] }]
+    });
+
+    expect(normalized.theme).toMatchObject(theme);
+    expect(normalized.themePresets[0].theme).toMatchObject(theme);
+  });
+
   it('preserves every group and repairs duplicate group and button IDs', () => {
     const groups = Array.from({ length: 7 }, (_, groupIndex) => ({
       id: groupIndex < 2 ? 'duplicate-group' : `group-${groupIndex}`,
@@ -33,6 +50,21 @@ describe('normalizeConfig', () => {
 
     const buttonIDs = normalizedGroups.flatMap((group) => group.entries.map((entry) => entry.id));
     expect(new Set(buttonIDs).size).toBe(buttonIDs.length);
+  });
+});
+
+describe('applyBrowserThemeColor', () => {
+  it('updates Safari theme metadata with a normalized active background', () => {
+    const meta = { setAttribute: vi.fn() };
+    const documentObject = { querySelector: vi.fn(() => meta) };
+
+    expect(applyBrowserThemeColor('#00CBE5', documentObject)).toBe('#00cbe5');
+    expect(documentObject.querySelector).toHaveBeenCalledWith('meta[name="theme-color"]');
+    expect(meta.setAttribute).toHaveBeenCalledWith('content', '#00cbe5');
+  });
+
+  it('falls back to the default page color for invalid values', () => {
+    expect(applyBrowserThemeColor('not-a-color', { querySelector: () => null })).toBe('#0f172a');
   });
 });
 

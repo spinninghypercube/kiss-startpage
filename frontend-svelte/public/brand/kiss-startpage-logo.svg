@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision">
+  <title id="title">KISS Startpage</title>
+  <desc id="desc">An isometric dashboard cube with four launcher tiles on each front face.</desc>
+  <defs>
+    <linearGradient id="cyan" x1="66" y1="42" x2="446" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00f3ff"/>
+      <stop offset="0.55" stop-color="#00e9fe"/>
+      <stop offset="1" stop-color="#00cbe5"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="126" y1="42" x2="446" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff9b2d"/>
+      <stop offset="1" stop-color="#fe8219"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="30">
+    <g stroke="#777c80">
+      <path d="M66 153 256 264 446 153"/>
+      <path d="M66 153V358"/>
+      <path d="M446 153V358"/>
+      <path d="M256 264V470"/>
+    </g>
+    <g stroke="url(#orange)">
+      <path d="M256 42 446 153"/>
+      <path d="M66 358 256 470"/>
+    </g>
+    <g stroke="url(#cyan)">
+      <path d="M66 153 256 42"/>
+      <path d="M446 358 256 470"/>
+    </g>
+  </g>
+
+  <g stroke="none">
+    <g fill="#777c80">
+      <path d="M172 257.779 219 285.237V332.144L172 304.686Z"/>
+      <path d="M103 289.856 150 317.314V364.221L103 336.763Z"/>
+      <path d="M172 330.166 219 357.624V404.531L172 377.073Z"/>
+      <path d="M293 285.446 340 257.988V305.124L293 332.582Z"/>
+      <path d="M362 245.136 409 217.678V264.814L362 292.271Z"/>
+      <path d="M293 358.186 340 330.729V377.864L293 405.322Z"/>
+    </g>
+    <path d="M103 217.469 150 244.927V291.834L103 264.376Z" fill="url(#orange)"/>
+    <path d="M362 317.876 409 290.418V337.554L362 365.012Z" fill="url(#cyan)"/>
+  </g>
+</svg>

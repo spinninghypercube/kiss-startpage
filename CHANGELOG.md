@@ -6,6 +6,50 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-08-09
+
+### Added
+- Added one searchable icon picker across all enabled providers and Iconify collections
+- Added regression coverage for mobile safe areas, KISS branding, static assets, authentication sessions, and serialized configuration saves
+- Added a concise contributor guide and production-first release procedure
+
+### Changed
+- Consolidated theme defaults, presets, normalization, and CSS variables into one module
+- Simplified drag-and-drop to update configuration directly from Sortable events
+- Serialized editor saves so delayed responses cannot overwrite newer changes
+- Updated Svelte, Vite, Playwright, and Vitest; removed unused icon-generation and drag dependencies
+- Staged Linux deployments now install only a small runtime allowlist after successful builds
+- Static hashed assets now use immutable caching while HTML remains revalidated
+- Docker and Linux tooling now consistently require Node.js 20.19 or newer
+- Removed obsolete provider-specific icon import endpoints
+- Installation documentation and example nginx/systemd files now use the same paths and port defaults
+
+### Fixed
+- Theme-derived group borders and corner radii now remain consistent in view mode, Tab Settings, Theme Editor, group boxes, and Add group
+- Successfully imported icon search results remain visibly selected until another icon is chosen
+- Username changes update every active session; password changes revoke other sessions; removed users can no longer retain access
+- Session cookies automatically use `Secure` behind HTTPS and carry an explicit lifetime
+- Linux and Docker installers now fail clearly when the deployed service stays unhealthy
+- Windows updates build beside the active runtime, preserve dependency ownership records, and restore the previous runtime after a failed health check
+
+## [2.7.2] - 2026-08-04
+
+### Added
+- Added durable KISS Startpage branding with SVG, Safari touch icon, and installable web-app icons
+- Added a standalone web-app manifest and mobile browser metadata
+- Added a built-in KISS Brand theme based on the cyan, graphite, and near-black logo palette
+
+### Changed
+- Frontend builds now regenerate the complete KISS icon set from its tracked SVG source
+- iPhone browser and installed web-app layouts now respect all safe areas, including the Dynamic Island and home indicator
+- Safari status and overscroll surfaces now follow the active startpage background when themes change
+- Theme preset normalization now preserves tab hover and group border colors
+- Group border colors now render on group boxes in both view and edit modes
+- The Theme Editor divider now follows the configured group border color
+- The outer Tab Settings and Theme Editor panel now uses the configured group border color
+- Tab Settings and Add group panels now use the same corner radius as group boxes
+- The built-in KISS Brand preset now matches the production Custom theme 3 palette
+
 ## [2.7.1] - 2026-07-28
 
 ### Changed

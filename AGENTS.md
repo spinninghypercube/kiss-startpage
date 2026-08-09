@@ -2,6 +2,9 @@
 
 These rules apply to the entire repository.
 
+`CONTRIBUTING.md` is the human-facing canonical guide. Keep this file aligned
+with it and deliberately short.
+
 ## Architecture
 
 - Keep the browser UI in `frontend-svelte/`.

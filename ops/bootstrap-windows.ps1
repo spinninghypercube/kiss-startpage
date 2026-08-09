@@ -72,6 +72,26 @@ function Install-WingetPackage {
     if ($proc.ExitCode -ne 0) { throw "Failed to install $DisplayName (exit $($proc.ExitCode))" }
 }
 
+function Upgrade-WingetPackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageId,
+        [Parameter(Mandatory = $true)][string]$DisplayName
+    )
+    if ($SkipDependencyInstall) {
+        throw "$DisplayName is too old. Upgrade it and rerun, or omit -SkipDependencyInstall."
+    }
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        throw "winget not found. Upgrade $DisplayName manually and rerun."
+    }
+    Write-Step "Upgrading $DisplayName ($PackageId) via winget"
+    $proc = Start-Process -FilePath "winget" -ArgumentList @(
+        "upgrade", "--id", $PackageId, "--exact",
+        "--accept-package-agreements", "--accept-source-agreements", "--silent"
+    ) -NoNewWindow -Wait -PassThru
+    if ($proc.ExitCode -ne 0) { throw "Failed to upgrade $DisplayName (exit $($proc.ExitCode))" }
+    Refresh-Path
+}
+
 $script:installedDepIds = @()
 $script:isUpdate        = $false
 $script:prevVersion     = $null
@@ -81,6 +101,7 @@ $script:rb_firewall     = $false   # we created the firewall rule
 $script:rb_startMenu    = $false   # we created the Start Menu folder
 $script:rb_registry     = $false   # we created the registry entry
 $script:rb_serviceName  = ""       # service name, for rollback use
+$script:installFailed   = $false
 
 function Ensure-Command {
     param(
@@ -172,6 +193,33 @@ try {
         Ensure-Command -Command "nssm" -PackageId "NSSM.NSSM" -DisplayName "NSSM"
     }
 
+    $nodeVersion = ((& node --version).Trim() -replace '^v', '')
+    if ([version]$nodeVersion -lt [version]'20.19.0') {
+        Upgrade-WingetPackage -PackageId "OpenJS.NodeJS.LTS" -DisplayName "Node.js 20.19+"
+        $nodeVersion = ((& node --version).Trim() -replace '^v', '')
+    }
+    if ([version]$nodeVersion -lt [version]'20.19.0') {
+        throw "Node.js 20.19.0 or newer is required (found $nodeVersion)."
+    }
+
+    $goVersionText = (& go version) -join ''
+    if ($goVersionText -notmatch 'go([0-9]+\.[0-9]+(?:\.[0-9]+)?)') {
+        throw "Unable to determine the installed Go version."
+    }
+    $goVersion = $Matches[1]
+    if ([version]$goVersion -lt [version]'1.24.0') {
+        Upgrade-WingetPackage -PackageId "GoLang.Go" -DisplayName "Go 1.24+"
+        $goVersionText = (& go version) -join ''
+        if ($goVersionText -notmatch 'go([0-9]+\.[0-9]+(?:\.[0-9]+)?)') {
+            throw "Unable to determine the installed Go version after upgrade."
+        }
+        $goVersion = $Matches[1]
+    }
+    if ([version]$goVersion -lt [version]'1.24.0') {
+        throw "Go 1.24.0 or newer is required (found $goVersion)."
+    }
+    Write-Step "Using Node.js $nodeVersion and Go $goVersion"
+
     $resolvedInstallRoot = [System.IO.Path]::GetFullPath($InstallRoot)
     $depsManifestPath = Join-Path $resolvedInstallRoot "installed-deps.json"
     $appDir              = Join-Path $resolvedInstallRoot "app"
@@ -180,7 +228,11 @@ try {
     $frontendDir         = Join-Path $appDir "frontend-svelte"
     $backendDir          = Join-Path $appDir "backend-go"
     $backendExe          = Join-Path $backendDir "kissdash-go.exe"
+    $backendNextExe      = Join-Path $backendDir "kissdash-go.next.exe"
+    $backendPreviousExe  = Join-Path $backendDir "kissdash-go.previous.exe"
     $appRoot             = Join-Path $frontendDir "dist"
+    $nextAppRoot         = Join-Path $frontendDir "dist.next"
+    $previousAppRoot     = Join-Path $frontendDir "dist.previous"
     $defaultConfig       = Join-Path $appDir "startpage-default-config.json"
     $launcherPath        = Join-Path $resolvedInstallRoot "run-kiss-startpage.cmd"
     $uninstallerPath     = Join-Path $resolvedInstallRoot "uninstall.ps1"
@@ -189,14 +241,19 @@ try {
     Write-Step "Preparing install directories"
     if (-not (Test-Path $resolvedInstallRoot)) { $script:rb_installRoot = $true }
     New-Item -ItemType Directory -Path $resolvedInstallRoot -Force | Out-Null
-    ConvertTo-Json -InputObject @($script:installedDepIds) | Set-Content -Path $depsManifestPath -Encoding UTF8
+    $previouslyInstalledDepIds = @()
+    if (Test-Path $depsManifestPath) {
+        $previouslyInstalledDepIds = @((Get-Content $depsManifestPath -Raw | ConvertFrom-Json))
+    }
+    $trackedDepIds = @($previouslyInstalledDepIds + $script:installedDepIds | Sort-Object -Unique)
+    ConvertTo-Json -InputObject $trackedDepIds | Set-Content -Path $depsManifestPath -Encoding UTF8
     New-Item -ItemType Directory -Path $resolvedDataDir     -Force | Out-Null
     New-Item -ItemType Directory -Path $privateIconsDir     -Force | Out-Null
 
     if (Test-Path (Join-Path $appDir ".git")) {
         Write-Step "Updating existing checkout: $appDir"
         Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "fetch", "--depth=1", "origin", $Branch) -FailureMessage "git fetch failed" -SuppressStderr
-        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "reset", "--hard", "origin/$Branch")     -FailureMessage "git reset failed" -SuppressStderr
+        Invoke-External -FilePath "git" -Arguments @("-C", $appDir, "reset", "--hard", "FETCH_HEAD")        -FailureMessage "git reset failed" -SuppressStderr
     }
     elseif (Test-Path $appDir) {
         throw "Install app directory exists but is not a git checkout: $appDir"
@@ -216,17 +273,31 @@ try {
     Write-Step "Building frontend"
     Push-Location $frontendDir
     try {
+        Remove-Item -Path $nextAppRoot -Recurse -Force -ErrorAction SilentlyContinue
         Invoke-External -FilePath "npm.cmd" -Arguments @("ci", "--no-fund", "--no-audit") -FailureMessage "npm ci failed" -SuppressStderr
-        Invoke-External -FilePath "npm.cmd" -Arguments @("run", "build") -FailureMessage "npm build failed" -SuppressStderr
+        Invoke-External -FilePath "npm.cmd" -Arguments @("run", "build", "--", "--outDir", "dist.next") -FailureMessage "npm build failed" -SuppressStderr
     }
     finally { Pop-Location }
 
     Write-Step "Building backend"
     Push-Location $backendDir
     try {
-        Invoke-External -FilePath "go" -Arguments @("build", "-buildvcs=false", "-o", "kissdash-go.exe", ".") -FailureMessage "go build failed"
+        Remove-Item -Path $backendNextExe -Force -ErrorAction SilentlyContinue
+        Invoke-External -FilePath "go" -Arguments @("build", "-buildvcs=false", "-o", "kissdash-go.next.exe", ".") -FailureMessage "go build failed"
     }
     finally { Pop-Location }
+
+    $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -ne $existingService) {
+        Write-Step "Stopping existing service before replacing the backend"
+        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -Path $previousAppRoot -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $appRoot) { Move-Item -Path $appRoot -Destination $previousAppRoot }
+    Move-Item -Path $nextAppRoot -Destination $appRoot
+    Remove-Item -Path $backendPreviousExe -Force -ErrorAction SilentlyContinue
+    if (Test-Path $backendExe) { Copy-Item -Path $backendExe -Destination $backendPreviousExe -Force }
+    Move-Item -Path $backendNextExe -Destination $backendExe -Force
 
     $launcherContent = @"
 @echo off
@@ -260,7 +331,6 @@ cd /d "$backendDir"
         $cmdExe        = Join-Path $env:SystemRoot "System32\cmd.exe"
         $appParameters = "/c `"$launcherPath`""
 
-        $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         $script:rb_serviceName = $ServiceName
         if ($null -eq $existingService) {
             Write-Step "Installing Windows service: $ServiceName"
@@ -269,8 +339,6 @@ cd /d "$backendDir"
         }
         else {
             Write-Step "Updating existing service: $ServiceName"
-            try { Stop-Service -Name $ServiceName -Force -ErrorAction Stop }
-            catch { Write-Step "Service was not running; continuing" }
         }
 
         Invoke-External -FilePath "nssm" -Arguments @("set", $ServiceName, "Application",   $cmdExe)        -FailureMessage "nssm set Application failed"
@@ -286,6 +354,11 @@ cd /d "$backendDir"
         Start-Service -Name $ServiceName
 
         $healthy = Wait-ForHealth -HealthPort $Port
+        if (-not $healthy) {
+            throw "Service failed its health check on http://127.0.0.1:${Port}/health"
+        }
+        Remove-Item -Path $previousAppRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $backendPreviousExe -Force -ErrorAction SilentlyContinue
         $ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
             Where-Object { $_.IPAddress -ne "127.0.0.1" -and $_.IPAddress -notlike "169.254.*" } |
             Select-Object -First 1 -ExpandProperty IPAddress)
@@ -373,11 +446,7 @@ if (Test-Path `$manifestPath) {
     `$parsed = Get-Content `$manifestPath -Raw | ConvertFrom-Json
     if (`$parsed) { `$installedIds = @(`$parsed) }
 }
-`$deps = if (`$installedIds.Count -gt 0) {
-    `$allDeps | Where-Object { `$installedIds -contains `$_.Id }
-} else {
-    `$allDeps
-}
+`$deps = `$allDeps | Where-Object { `$installedIds -contains `$_.Id }
 
 if (`$deps.Count -gt 0) {
     Write-Host ''
@@ -463,18 +532,26 @@ Read-Host 'Press Enter to close'
         Write-Host "Install root: $resolvedInstallRoot"
         Write-Host "Data dir:     $resolvedDataDir"
         Write-Host "Uninstall:    Settings > Apps, or Start Menu > KISS Startpage > Uninstall"
-        if (-not $healthy) { Write-Host "WARNING: health check timed out — verify with: nssm status $ServiceName" }
         Write-Host ""
         Write-Host "Note: the network URL uses a DHCP-assigned IP. For a permanent link, assign a static IP on this PC."
     }
 
 
 } catch {
+    $script:installFailed = $true
     Write-Host ""
     Write-Host "INSTALL FAILED: $_" -ForegroundColor Red
     Write-Host ""
     if ($script:isUpdate) {
-        Write-Host "Attempting to restart service with existing binaries..." -ForegroundColor Yellow
+        Write-Host "Attempting to restore the previous runtime..." -ForegroundColor Yellow
+        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+        if (Test-Path $previousAppRoot) {
+            Remove-Item -Path $appRoot -Recurse -Force -ErrorAction SilentlyContinue
+            Move-Item -Path $previousAppRoot -Destination $appRoot -Force
+        }
+        if (Test-Path $backendPreviousExe) {
+            Copy-Item -Path $backendPreviousExe -Destination $backendExe -Force
+        }
         Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
     } else {
         Write-Host "Rolling back..." -ForegroundColor Yellow
@@ -500,7 +577,11 @@ Read-Host 'Press Enter to close'
     Write-Host ""
 } finally {
     Stop-Transcript | Out-Null
-    Write-Host ""
-    Write-Host "Press any key to close..." -NoNewline
-    $null = [Console]::ReadKey($true)
+    if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+        Write-Host ""
+        Write-Host "Press any key to close..." -NoNewline
+        $null = [Console]::ReadKey($true)
+    }
 }
+
+if ($script:installFailed) { exit 1 }

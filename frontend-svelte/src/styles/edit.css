@@ -1,82 +1,3 @@
-:root {
-      --shell-max-width: 1150px;
-      --bg-a: #020617;
-      --bg-b: #0f172a;
-      --bg-c: #111827;
-      --panel-bg: rgba(15, 23, 42, 0.72);
-      --panel-border: rgba(148, 163, 184, 0.28);
-      --text-soft: #cbd5e1;
-      --title: #f8fafc;
-      --startpage-tab-bg: rgba(30, 41, 59, 0.55);
-      --startpage-tab-hover-bg: rgba(51, 65, 85, 0.72);
-      --startpage-tab-text: #cbd5e1;
-      --startpage-tab-hover-text: #e2e8f0;
-      --startpage-tab-active-bg: #2563eb;
-      --startpage-tab-active-text: #ffffff;
-      --startpage-nav-tab-bg: #f8fafc;
-      --startpage-nav-tab-text: #0f172a;
-      --startpage-nav-tab-hover-bg: #e2e8f0;
-      --startpage-nav-tab-hover-text: #020617;
-      --startpage-switch-track-bg: #475569;
-      --startpage-switch-track-border: rgba(248, 250, 252, 0.22);
-      --startpage-switch-knob-bg: #ffffff;
-      --admin-entry-add-accent: #f8fafc;
-      --admin-entry-add-accent-soft: rgba(248, 250, 252, 0.75);
-      --admin-entry-add-accent-hover-bg: rgba(248, 250, 252, 0.14);
-      --admin-group-add-accent: #f8fafc;
-      --admin-group-add-accent-soft: rgba(248, 250, 252, 0.75);
-      --admin-group-add-accent-hover-bg: rgba(248, 250, 252, 0.14);
-      --admin-surface-text-color: #f8fafc;
-      --admin-surface-text-muted: rgba(248, 250, 252, 0.88);
-      --admin-page-text-color: #f8fafc;
-      --admin-page-text-muted: rgba(248, 250, 252, 0.88);
-      --admin-panel-text-color: #f8fafc;
-      --admin-panel-text-muted: rgba(248, 250, 252, 0.88);
-      --admin-input-bg: rgba(15, 23, 42, 0.78);
-      --admin-input-text: #f8fafc;
-      --admin-input-placeholder: #9aa8bb;
-      --admin-input-border: rgba(148, 163, 184, 0.35);
-      --admin-input-focus-border: #60a5fa;
-      --admin-input-focus-ring: rgba(96, 165, 250, 0.2);
-      --admin-modal-bg: rgba(15, 23, 42, 0.88);
-      --admin-modal-chrome-bg: rgba(15, 23, 42, 0.92);
-      --admin-modal-border: rgba(148, 163, 184, 0.2);
-      --admin-button-bg: #2d3441;
-      --admin-button-hover-bg: #404652;
-      --admin-button-text: #f8fafc;
-      --admin-button-border: rgba(248, 250, 252, 0.28);
-      --admin-button-primary-bg: #2563eb;
-      --admin-button-primary-hover-bg: #4178ee;
-      --admin-button-primary-text: #ffffff;
-      --admin-button-danger-bg: #dc2626;
-      --admin-button-danger-hover-bg: #e14343;
-      --admin-button-danger-text: #ffffff;
-      --admin-button-warning-bg: #d97706;
-      --admin-button-warning-text: #ffffff;
-    }
-
-    html,
-    body {
-      height: 100%;
-      min-height: 100dvh;
-    }
-
-    html {
-      background: var(--startpage-page-bg, var(--bg-a));
-    }
-
-    body {
-      min-height: 100dvh;
-      margin: 0;
-      background: var(--startpage-page-bg, var(--bg-a));
-      color: var(--startpage-text-color, var(--title));
-    }
-
-    .section {
-      min-height: 100dvh;
-      background: transparent;
-    }
-
     .admin-shell {
       max-width: var(--shell-max-width);
       margin: 0 auto;
@@ -118,10 +39,10 @@
       justify-content: flex-end;
     }
 
-    .panel-box,
-    .group-box,
-    .login-box,
-    .account-box,
+    .admin-shell .panel-box,
+    .admin-shell .group-box,
+    .admin-shell .login-box,
+    .admin-shell .account-box,
     .modal-card {
       background: var(--panel-bg);
       border: 1px solid transparent;
@@ -130,50 +51,50 @@
       -webkit-backdrop-filter: blur(6px);
     }
 
-    .panel-box,
-    .group-box {
+    .admin-shell .panel-box,
+    .admin-shell .group-box {
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .login-box {
+    .admin-shell .login-box {
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .account-box,
+    .admin-shell .account-box,
     .modal-card {
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .panel-box .title,
-    .panel-box .subtitle,
-    .panel-box .label,
-    .panel-box .help,
-    .panel-box p,
-    .panel-box .checkbox,
-    .group-box .title,
-    .group-box .subtitle,
-    .group-box .label,
-    .group-box .help,
-    .group-box p,
-    .group-box .checkbox {
+    .admin-shell .panel-box .title,
+    .admin-shell .panel-box .subtitle,
+    .admin-shell .panel-box .label,
+    .admin-shell .panel-box .help,
+    .admin-shell .panel-box p,
+    .admin-shell .panel-box .checkbox,
+    .admin-shell .group-box .title,
+    .admin-shell .group-box .subtitle,
+    .admin-shell .group-box .label,
+    .admin-shell .group-box .help,
+    .admin-shell .group-box p,
+    .admin-shell .group-box .checkbox {
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .login-box .title,
-    .login-box .subtitle,
-    .login-box .label,
-    .login-box .help,
-    .login-box p,
-    .login-box .checkbox {
+    .admin-shell .login-box .title,
+    .admin-shell .login-box .subtitle,
+    .admin-shell .login-box .label,
+    .admin-shell .login-box .help,
+    .admin-shell .login-box p,
+    .admin-shell .login-box .checkbox {
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .account-box .title,
-    .account-box .subtitle,
-    .account-box .label,
-    .account-box .help,
-    .account-box p,
-    .account-box .checkbox,
+    .admin-shell .account-box .title,
+    .admin-shell .account-box .subtitle,
+    .admin-shell .account-box .label,
+    .admin-shell .account-box .help,
+    .admin-shell .account-box p,
+    .admin-shell .account-box .checkbox,
     .modal-card .title,
     .modal-card .subtitle,
     .modal-card .label,
@@ -184,101 +105,101 @@
       color: var(--admin-surface-text-color, var(--startpage-text-color, var(--title)));
     }
 
-    .panel-box .muted,
-    .group-box .muted {
+    .admin-shell .panel-box .muted,
+    .admin-shell .group-box .muted {
       color: var(--admin-surface-text-muted, var(--text-soft));
     }
 
-    .login-box .muted {
+    .admin-shell .login-box .muted {
       color: var(--admin-surface-text-muted, var(--text-soft));
     }
 
-    .account-box .muted,
+    .admin-shell .account-box .muted,
     .modal-card .muted {
       color: var(--admin-surface-text-muted, var(--text-soft));
     }
 
-    .input,
-    .select select,
-    .textarea {
+    :is(.admin-shell, .modal) .input,
+    :is(.admin-shell, .modal) .select select,
+    :is(.admin-shell, .modal) .textarea {
       background: var(--admin-input-bg, rgba(15, 23, 42, 0.78));
       color: var(--admin-input-text, #f8fafc);
       border-color: var(--admin-input-border, rgba(148, 163, 184, 0.35));
     }
 
-    .input::placeholder,
-    .textarea::placeholder {
+    :is(.admin-shell, .modal) .input::placeholder,
+    :is(.admin-shell, .modal) .textarea::placeholder {
       color: var(--admin-input-placeholder, #9aa8bb);
     }
 
-    .input:focus,
-    .select select:focus,
-    .textarea:focus {
+    :is(.admin-shell, .modal) .input:focus,
+    :is(.admin-shell, .modal) .select select:focus,
+    :is(.admin-shell, .modal) .textarea:focus {
       border-color: var(--admin-input-focus-border, #60a5fa);
       box-shadow: 0 0 0 0.125em var(--admin-input-focus-ring, rgba(96, 165, 250, 0.2));
     }
 
-    .button.is-small:not(.icon-action):not(.drag-handle) {
+    :is(.admin-shell, .modal) .button.is-small:not(.icon-action):not(.drag-handle) {
       min-height: 2.5rem;
       height: 2.5rem;
       padding-top: 0;
       padding-bottom: 0;
     }
 
-    .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle) {
+    :is(.admin-shell, .modal) .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle) {
       background: var(--admin-button-bg);
       color: var(--admin-button-text);
       border-color: var(--admin-button-border);
       box-shadow: none;
     }
 
-    .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled),
-    .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):focus-visible {
+    :is(.admin-shell, .modal) .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled),
+    :is(.admin-shell, .modal) .button:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):focus-visible {
       background: var(--admin-button-hover-bg);
       color: var(--admin-button-text);
       border-color: var(--admin-button-text);
     }
 
-    .button.is-link:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle),
-    .button.is-link.is-light:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle) {
+    :is(.admin-shell, .modal) .button.is-link:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle),
+    :is(.admin-shell, .modal) .button.is-link.is-light:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle) {
       background: var(--admin-button-primary-bg, var(--admin-accent, var(--startpage-tab-active-bg)));
       color: var(--admin-button-primary-text, var(--admin-accent-text, var(--startpage-tab-active-text)));
       border-color: transparent;
     }
 
-    .button.is-link:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled),
-    .button.is-link.is-light:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled) {
+    :is(.admin-shell, .modal) .button.is-link:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled),
+    :is(.admin-shell, .modal) .button.is-link.is-light:not(.entry-button):not(.entry-preview-button):not(.entry-add-button):not(.group-add-panel-button):not(.icon-action):not(.drag-handle):hover:not(:disabled) {
       background: var(--admin-button-primary-hover-bg, var(--admin-button-primary-bg));
       color: var(--admin-button-primary-text, var(--admin-accent-text, var(--startpage-tab-active-text)));
       border-color: transparent;
     }
 
-    .button.is-danger:not(.icon-action),
-    .button.is-danger.is-light:not(.icon-action) {
+    :is(.admin-shell, .modal) .button.is-danger:not(.icon-action),
+    :is(.admin-shell, .modal) .button.is-danger.is-light:not(.icon-action) {
       background: var(--admin-button-danger-bg) !important;
       color: var(--admin-button-danger-text) !important;
       border-color: transparent !important;
     }
 
-    .button.is-danger:not(.icon-action):hover:not(:disabled),
-    .button.is-danger.is-light:not(.icon-action):hover:not(:disabled) {
+    :is(.admin-shell, .modal) .button.is-danger:not(.icon-action):hover:not(:disabled),
+    :is(.admin-shell, .modal) .button.is-danger.is-light:not(.icon-action):hover:not(:disabled) {
       background: var(--admin-button-danger-hover-bg) !important;
       color: var(--admin-button-danger-text) !important;
     }
 
-    .button.is-warning:not(.icon-action),
-    .button.is-warning.is-light:not(.icon-action) {
+    :is(.admin-shell, .modal) .button.is-warning:not(.icon-action),
+    :is(.admin-shell, .modal) .button.is-warning.is-light:not(.icon-action) {
       background: var(--admin-button-warning-bg) !important;
       color: var(--admin-button-warning-text) !important;
       border-color: transparent !important;
     }
 
-    .button:disabled {
+    :is(.admin-shell, .modal) .button:disabled {
       opacity: 0.46;
       cursor: not-allowed;
     }
 
-    .input[type="file"]::file-selector-button {
+    :is(.admin-shell, .modal) .input[type="file"]::file-selector-button {
       margin: -0.45rem 0.7rem -0.45rem -0.7rem;
       padding: 0.45rem 0.75rem;
       min-height: 2.4rem;
@@ -290,7 +211,7 @@
       cursor: pointer;
     }
 
-    .input[type="file"]::file-selector-button:hover {
+    :is(.admin-shell, .modal) .input[type="file"]::file-selector-button:hover {
       background: var(--admin-button-hover-bg);
     }
 
@@ -574,7 +495,7 @@
     .live-color-editor-panel {
       margin-top: 0.4rem;
       padding-top: 0.75rem;
-      border-top: 1px solid rgba(148, 163, 184, 0.22);
+      border-top: 1px solid var(--startpage-group-border, rgba(148, 163, 184, 0.22));
     }
 
     .live-color-editor-head {
@@ -1012,27 +933,28 @@
       cursor: not-allowed;
     }
 
-    .group-box {
+    .admin-shell .group-box {
       margin-top: 1rem;
       background: var(--startpage-group-bg, var(--panel-bg));
+      border-color: var(--startpage-group-border, transparent);
       padding: 24px;
     }
 
-    .login-box {
+    .admin-shell .login-box {
       background: var(--startpage-group-bg, var(--panel-bg));
     }
 
-    .account-box,
+    .admin-shell .account-box,
     .modal-card {
       background: var(--startpage-group-bg, var(--panel-bg));
     }
 
     .admin-group-shell-flat .group-box {
       background: transparent;
-      border-color: transparent;
+      border-color: var(--startpage-group-border, transparent);
       box-shadow: none;
-      padding: 0;
-      border-radius: 0;
+      padding: 12px;
+      border-radius: var(--startpage-group-radius, 0.85rem);
     }
 
     .admin-group-shell-flat .group-head {
@@ -1060,19 +982,29 @@
       border-radius: 0;
     }
 
+    .admin-group-shell-flat .startpage-settings-box {
+      border-color: var(--startpage-group-border, transparent);
+      padding: 12px;
+      border-radius: var(--startpage-group-radius, 0.85rem);
+    }
+
     .admin-group-shell-flat .startpage-settings-box > *,
     .admin-group-shell-flat .admin-editor-box > * {
       padding-left: var(--startpage-group-inner-padding, 0.4rem);
       padding-right: var(--startpage-group-inner-padding, 0.4rem);
     }
 
-    .startpage-settings-box {
+    .admin-shell .startpage-settings-box {
       background: var(--startpage-group-bg, var(--panel-bg));
+      border-color: var(--startpage-group-border, transparent);
+      border-radius: var(--startpage-group-radius, 0.85rem);
       padding: 24px;
     }
 
-    .admin-editor-box {
+    .admin-shell .admin-editor-box {
       background: var(--startpage-group-bg, var(--panel-bg));
+      border-color: var(--startpage-group-border, transparent);
+      border-radius: var(--startpage-group-radius, 0.85rem);
       padding: 24px;
     }
 
@@ -1088,7 +1020,7 @@
       padding-right: 0 !important;
     }
 
-    .group-box.group-end {
+    .admin-shell .group-box.group-end {
       margin-bottom: 1.5rem;
     }
 
@@ -1322,6 +1254,7 @@
     .group-add-panel {
       margin-top: 1rem;
       border: 2px dotted var(--admin-group-add-accent-soft) !important;
+      border-radius: var(--startpage-group-radius, 0.85rem);
       background: transparent !important;
       transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
@@ -1410,6 +1343,20 @@
       -webkit-tap-highlight-color: transparent;
       appearance: none;
       -webkit-appearance: none;
+    }
+
+    .modal {
+      box-sizing: border-box;
+      padding:
+        max(20px, calc(var(--kiss-safe-area-top) + 12px))
+        max(20px, calc(var(--kiss-safe-area-right) + 12px))
+        max(20px, calc(var(--kiss-safe-area-bottom) + 12px))
+        max(20px, calc(var(--kiss-safe-area-left) + 12px));
+    }
+
+    .modal-card {
+      max-height: 100%;
+      margin: 0;
     }
 
     .modal-card-head,
@@ -1690,6 +1637,24 @@
       color: var(--admin-button-text);
     }
 
+    .icon-search-result.is-selected {
+      border-color: var(--admin-button-primary-bg);
+      background: color-mix(in srgb, var(--admin-button-primary-bg) 16%, transparent);
+      box-shadow: inset 0 0 0 1px var(--admin-button-primary-bg);
+    }
+
+    .icon-search-result.is-importing {
+      opacity: 0.72;
+    }
+
+    .icon-search-result-selection {
+      flex: 0 0 auto;
+      color: var(--admin-button-primary-bg);
+      font-size: 0.75rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .icon-search-result-media {
       width: 1.5rem;
       height: 1.5rem;
@@ -1742,7 +1707,11 @@
       }
 
       .section {
-        padding: 12px;
+        padding:
+          max(12px, calc(var(--kiss-safe-area-top) + 12px))
+          max(12px, calc(var(--kiss-safe-area-right) + 12px))
+          max(12px, calc(var(--kiss-safe-area-bottom) + 12px))
+          max(12px, calc(var(--kiss-safe-area-left) + 12px));
       }
 
       .group-box,

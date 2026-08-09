@@ -86,6 +86,7 @@ require_cmd() {
 require_supported_docker_platform
 require_cmd git
 require_cmd docker
+require_cmd curl
 
 DOCKER_PREFIX=()
 if ! docker info >/dev/null 2>&1; then
@@ -114,9 +115,8 @@ fi
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   echo "[bootstrap-docker] Reusing existing checkout: $INSTALL_DIR"
-  git -C "$INSTALL_DIR" fetch --tags origin
-  git -C "$INSTALL_DIR" checkout "$BRANCH"
-  git -C "$INSTALL_DIR" pull --ff-only origin "$BRANCH"
+  git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
+  git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
 else
   mkdir -p "$(dirname "$INSTALL_DIR")"
   echo "[bootstrap-docker] Cloning ${REPO_URL} (${BRANCH}) to $INSTALL_DIR"
@@ -125,13 +125,13 @@ fi
 
 ENV_FILE="$INSTALL_DIR/.env"
 if [[ -f "$ENV_FILE" ]]; then
-  if grep -q '^KISS_PORT=' "$ENV_FILE"; then
-    sed -i "s/^KISS_PORT=.*/KISS_PORT=${PORT}/" "$ENV_FILE"
+  if grep -q '^STARTPAGE_PUBLIC_PORT=' "$ENV_FILE"; then
+    sed -i "s/^STARTPAGE_PUBLIC_PORT=.*/STARTPAGE_PUBLIC_PORT=${PORT}/" "$ENV_FILE"
   else
-    printf '\nKISS_PORT=%s\n' "$PORT" >> "$ENV_FILE"
+    printf '\nSTARTPAGE_PUBLIC_PORT=%s\n' "$PORT" >> "$ENV_FILE"
   fi
 else
-  printf 'KISS_PORT=%s\n' "$PORT" > "$ENV_FILE"
+  printf 'STARTPAGE_PUBLIC_PORT=%s\n' "$PORT" > "$ENV_FILE"
 fi
 
 echo "[bootstrap-docker] Starting container build and app"
@@ -140,14 +140,19 @@ echo "[bootstrap-docker] Starting container build and app"
   "${COMPOSE_CMD[@]}" up -d --build
 )
 
-if command -v curl >/dev/null 2>&1; then
-  echo "[bootstrap-docker] Waiting for health endpoint"
-  for _ in $(seq 1 60); do
-    if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
+echo "[bootstrap-docker] Waiting for health endpoint"
+HEALTHY=0
+for _ in $(seq 1 60); do
+  if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+    HEALTHY=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$HEALTHY" -ne 1 ]]; then
+  echo "Container failed its health check on port ${PORT}." >&2
+  (cd "$INSTALL_DIR" && "${COMPOSE_CMD[@]}" ps && "${COMPOSE_CMD[@]}" logs --tail 100 app) >&2 || true
+  exit 1
 fi
 
 host_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"

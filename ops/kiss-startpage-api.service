@@ -1,0 +1,19 @@
+[Unit]
+Description=KISS Startpage API
+After=network.target
+
+[Service]
+Type=simple
+User=kiss-startpage
+Group=kiss-startpage
+WorkingDirectory=/opt/kiss-startpage/current
+EnvironmentFile=-/etc/default/kiss-startpage-api
+Environment=DASH_DEFAULT_CONFIG=/opt/kiss-startpage/current/startpage-default-config.json
+Environment=DASH_APP_ROOT=/opt/kiss-startpage/current/frontend-svelte/dist
+Environment=DASH_PRIVATE_ICONS_DIR=/var/lib/kiss-startpage/private-icons
+ExecStart=/opt/kiss-startpage/current/backend-go/kissdash-go
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
